@@ -397,7 +397,8 @@
                                     <img src="https://flagcdn.com/w40/id.png" alt="ID" className="w-6 h-4 object-cover rounded-[2px]" />
                                 </button>
                             </div>
-                            <a href="#" className="bg-cyan-400 text-void font-bold px-5 py-2 rounded-sm hover:bg-cyan-500 transition-colors hover:shadow-neon text-sm font-heading">
+                            {/* UPDATED: Download CV Link */}
+                            <a href="https://drive.google.com/file/d/1g0QLk5X0iVHT6ocU8TfEqbkOS-xsR3wm/view?usp=sharing" target="_blank" rel="noopener noreferrer" className="bg-cyan-400 text-void font-bold px-5 py-2 rounded-sm hover:bg-cyan-500 transition-colors hover:shadow-neon text-sm font-heading">
                                 Download CV
                             </a>
                         </div>
@@ -781,11 +782,6 @@
                                                         <Icon name="github" size={20} />
                                                     </a>
                                                 </div>
-
-                                                {/* Commented Out Live Demo as requested */}
-                                                {/* <div className="pt-4 border-t border-white/10 flex justify-between items-center mt-auto">
-                                                    <a href="#" className="text-sm font-bold text-white hover:text-cyan-400 flex items-center gap-2 transition-colors"><Icon name="external-link" size={16} /> Live Demo</a>
-                                                </div> */}
                                             </div>
                                         </div>
                                     ))}
@@ -839,12 +835,22 @@
 
             const handleSubmit = (e) => {
                 e.preventDefault();
+                // Validasi data sudah ditangani oleh atribut required pada input
+                // Mengirim email menggunakan mailto protocol (Client-side)
                 setStatus('sending');
+                
+                const subject = `Portfolio Contact from ${form.name}`;
+                const body = `Name: ${form.name}\nEmail: ${form.email}\n\nMessage:\n${form.message}`;
+                
+                // Membuka email client pengguna dengan data yang sudah terisi
+                window.location.href = `mailto:dikialif550@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+                // Reset UI seolah-olah terkirim
                 setTimeout(() => {
                     setStatus('success');
                     setForm({ name: '', email: '', message: '' });
                     setTimeout(() => setStatus(null), 3000);
-                }, 1500);
+                }, 1000);
             };
 
             return (
