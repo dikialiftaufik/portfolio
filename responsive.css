@@ -1,0 +1,143 @@
+/* responsive.css */
+
+/* --- GLOBAL MOBILE RESET --- */
+@media (max-width: 768px) {
+    body, html {
+        overflow-x: hidden; /* Mencegah scroll menyamping yang tidak sengaja */
+        width: 100%;
+    }
+
+    /* Penyesuaian Font Global agar tidak terlalu besar di HP */
+    h1, .text-6xl, .text-8xl {
+        font-size: 2.5rem !important;
+        line-height: 1.1 !important;
+    }
+
+    h2, .text-5xl, .text-4xl {
+        font-size: 1.8rem !important;
+        line-height: 1.2 !important;
+    }
+
+    p, .text-lg {
+        font-size: 1rem !important;
+    }
+}
+
+/* --- NAVBAR --- */
+@media (max-width: 1024px) {
+    nav .max-w-7xl {
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+    }
+}
+
+/* --- HERO SECTION --- */
+@media (max-width: 768px) {
+    #home {
+        padding-top: 60px; /* Memberi ruang agar tidak tertutup navbar */
+        min-height: 100vh;
+    }
+
+    /* Mengatur ulang container text typing agar tidak berantakan */
+    #home .h-12 {
+        height: auto !important;
+        min-height: 3rem;
+        font-size: 1.25rem !important;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Tombol menjadi full width di HP agar mudah ditekan */
+    #home button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    #home .flex-col {
+        width: 100%;
+    }
+}
+
+/* --- ABOUT & CHATBOT SECTION --- */
+@media (max-width: 1024px) {
+    #about .grid {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    /* Memperbaiki tinggi Chatbot yang sebelumnya fix 500px */
+    #about .glass-panel {
+        height: 60vh !important; /* Menggunakan viewport height agar responsif */
+        min-height: 450px;
+        max-height: 600px;
+    }
+    
+    /* Scroll horizontal untuk chip pertanyaan cepat */
+    #about .overflow-x-auto {
+        padding-bottom: 5px;
+    }
+}
+
+/* --- PORTFOLIO SHOWCASE --- */
+@media (max-width: 768px) {
+    /* Tab Navigasi agar bisa discroll jika layar terlalu kecil */
+    #showcase .flex.justify-center > div {
+        width: 100%;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding: 0.5rem;
+    }
+    
+    #showcase button {
+        white-space: nowrap;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.8rem !important;
+    }
+
+    /* Mengubah Grid menjadi 1 kolom untuk Proyek & Sertifikat */
+    #showcase .grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+    }
+
+    /* Khusus Tech Stack: Tetap 3 kolom tapi lebih rapat */
+    #showcase .grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 0.75rem !important;
+    }
+
+    /* Memperbaiki ukuran gambar modal sertifikat */
+    .fixed img {
+        max-height: 50vh !important;
+        width: auto !important;
+    }
+}
+
+/* --- CONTACT SECTION --- */
+@media (max-width: 768px) {
+    #contact .grid {
+        display: flex;
+        flex-direction: column-reverse; /* Form di atas, info kontak di bawah */
+        gap: 3rem;
+    }
+
+    #contact h2 {
+        text-align: center;
+    }
+
+    #contact form {
+        padding: 1.5rem !important;
+    }
+}
+
+/* --- FOOTER --- */
+@media (max-width: 768px) {
+    footer .flex-col {
+        gap: 1.5rem;
+    }
+    
+    footer .text-right {
+        text-align: center !important;
+    }
+}
