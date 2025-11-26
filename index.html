@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diki Alif Taufik</title>
+    
+    <link rel="icon" type="image/png" href="new fix.png">
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="stylesheet" type='text/css' href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" />
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        void: '#050b14', // Deeper black/blue for space theme
+                        titanium: '#EDEDED',
+                        cyan: {
+                            DEFAULT: '#00F0FF',
+                            400: '#00F0FF',
+                            500: '#00D0DF', 
+                            900: '#003033',
+                        },
+                        steel: '#2D3748',
+                        glass: 'rgba(20, 20, 20, 0.7)',
+                        card: 'rgba(255, 255, 255, 0.03)',
+                        editor: '#1e1e1e',
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                        heading: ['"Space Grotesk"', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'neon': '0 0 20px rgba(0, 240, 255, 0.3)',
+                        'neon-strong': '0 0 30px rgba(0, 240, 255, 0.5)',
+                        'inset-pressed': 'inset 2px 2px 5px rgba(0,0,0,0.8), inset -1px -1px 0px rgba(255,255,255,0.1)',
+                    },
+                    animation: {
+                        'blink': 'blink 1s step-end infinite',
+                        'float-slow': 'float 15s ease-in-out infinite',
+                        'pulse-glow': 'pulseGlow 4s ease-in-out infinite',
+                        'fade-up': 'fadeUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                    },
+                    keyframes: {
+                        blink: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { opacity: '0.3', transform: 'scale(1)' },
+                            '50%': { opacity: '0.6', transform: 'scale(1.05)' },
+                        },
+                        fadeUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0A0A0A; }
+        ::-webkit-scrollbar-thumb { background: #2D3748; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00F0FF; }
+
+        /* Utilities */
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s step-end infinite;
+            color: #00F0FF;
+            margin-left: 2px;
+        }
+
+        /* Syntax Highlighting for Code Editor */
+        .code-keyword { color: #569cd6; } 
+        .code-function { color: #dcdcaa; } 
+        .code-string { color: #ce9178; } 
+        .code-property { color: #9cdcfe; } 
+        .code-comment { color: #6a9955; font-style: italic; } 
+        .code-operator { color: #d4d4d4; }
+        .code-bracket { color: #ffd700; }
+
+        .flag-btn {
+            transition: all 0.2s ease;
+            filter: grayscale(100%);
+            opacity: 0.5;
+            border: 1px solid transparent;
+        }
+        .flag-btn:hover { filter: grayscale(0%); opacity: 0.8; }
+        .flag-btn.active {
+            filter: grayscale(0%);
+            opacity: 1;
+            transform: scale(0.95);
+            box-shadow: inset 0px 4px 6px rgba(0, 0, 0, 0.6);
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .cert-overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+        }
+        
+        .force-text-white {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+
+        /* Grid Horizon Effect */
+        .perspective-grid {
+            background-size: 40px 40px;
+            background-image:
+                linear-gradient(to right, rgba(0, 240, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 240, 255, 0.1) 1px, transparent 1px);
+            transform: perspective(500px) rotateX(60deg);
+            transform-origin: bottom;
+            mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
+        }
+    </style>
+</head>
+<body class="bg-void text-titanium font-sans antialiased overflow-x-hidden selection:bg-cyan-400 selection:text-void relative">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- ICONS WRAPPER ---
+        const Icon = ({ name, size = 20, className }) => {
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [name]);
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        };
+
+        // --- GLOBAL AMBIENT BACKGROUND (Modified for Deep Space) ---
+        const GlobalBackground = () => (
+            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-void">
+                {/* Nebula Effects */}
+                <div className="absolute top-[-20%] left-[-20%] w-[60vw] h-[60vw] bg-purple-900/10 rounded-full blur-[150px] animate-pulse-glow"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-cyan-900/10 rounded-full blur-[150px] animate-pulse-glow" style={{animationDelay: '2s'}}></div>
+                {/* Noise texture for "film grain" look */}
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] mix-blend-overlay"></div>
+            </div>
+        );
+
+        // --- DATA ---
+        const translations = {
+            en: {
+                nav: ['Home', 'About', 'Portfolio', 'Contact'],
+                hero: {
+                    greeting: "Hello World,",
+                    im: "I'm", 
+                    pitch: "Software Engineer", 
+                    subPitch: "Building scalable solutions and leveraging AI to solve real-world problems.",
+                    btnPrimary: "Explore Portfolio",
+                    btnSecondary: "Let's Connect"
+                },
+                about: { title: "Get to Know Me Better", subtitle: "Ask me anything through this AI-powered chatbot" },
+                portfolio: {
+                    title: "Portfolio Showcase",
+                    subtitle: "Explore my journey through complex projects, certifications, and my technical arsenal.",
+                    tabs: ['Projects', 'Certificates', 'Tech Stack'],
+                    more: "More to Come",
+                    moreSub: "Continuously learning and upskilling."
+                },
+                contact: {
+                    title: "Let's Build Something",
+                    titleHigh: "Together.",
+                    desc: "Open for collaborations, freelance projects and internships. I usually respond within 24 hours.",
+                    name: "NAME",
+                    email: "EMAIL",
+                    loc: "LOCATION",
+                    msg: "MESSAGE",
+                    btn: "Send Message",
+                    sending: "Sending...",
+                    sent: "Message Sent!"
+                },
+                footer: {
+                    quote: "Building the future, one line at a time.",
+                    rights: "Built with React + Tailwind."
+                }
+            },
+            id: {
+                nav: ['Beranda', 'Tentang', 'Portofolio', 'Kontak'],
+                hero: {
+                    greeting: "Halo Dunia,",
+                    im: "Saya",
+                    pitch: "Software Engineer",
+                    subPitch: "Membangun solusi berskala besar dan memanfaatkan AI untuk masalah nyata.",
+                    btnPrimary: "Lihat Portofolio",
+                    btnSecondary: "Mari Terhubung"
+                },
+                about: { title: "Kenali Saya Lebih Dekat", subtitle: "Tanyakan apa saja melalui chatbot bertenaga AI ini" },
+                portfolio: {
+                    title: "Pameran Portofolio",
+                    subtitle: "Jelajahi perjalanan saya melalui proyek kompleks, sertifikasi, dan kemampuan teknis.",
+                    tabs: ['Proyek', 'Sertifikat', 'Teknologi'],
+                    more: "Akan Datang",
+                    moreSub: "Terus belajar dan meningkatkan keahlian."
+                },
+                contact: {
+                    title: "Mari Membangun Sesuatu",
+                    titleHigh: "Bersama.",
+                    desc: "Terbuka untuk kolaborasi, proyek freelance, dan magang. Saya biasanya merespons dalam 24 jam.",
+                    email: "EMAIL",
+                    loc: "LOKASI",
+                    msg: "PESAN",
+                    btn: "Kirim Pesan",
+                    sending: "Mengirim...",
+                    sent: "Pesan Terkirim!"
+                },
+                footer: {
+                    quote: "Membangun masa depan, satu baris kode setiap waktu.",
+                    rights: "Dibuat dengan React + Tailwind."
+                }
+            }
+        };
+
+        const projectsData = [
+            { 
+                id: 1, 
+                title: "BOLOOO", 
+                tagline: "Platform berbasis Website Pemesanan Makanan dan Reservasi Tempat", 
+                description: "Developed collaboratively by a team of three for a university final project, this web application was built following comprehensive user research including interviews, questionnaires, and journey mapping, and features a secure database architecture that implements password hashing and SQL injection prevention.", 
+                tech: ["HTML", "PHP", "CSS", "JavaScript"], 
+                image: "Screenshot 2025-11-26 122833.png",
+                githubLink: "https://github.com/dikialiftaufik/tubes-webpro" 
+            },
+            { 
+                id: 2, 
+                title: "PPDB Online", 
+                tagline: "Platform berbasis Website Penerimaan Peserta Didik Baru", 
+                description: "Developed individually as a final project for my vocational high school competency exam, this online student admission system utilizes Laravel, Bootstrap and MySQL to streamline the registration process and allows administrators to manage and verify applicant data efficiently.", 
+                tech: ["Laravel", "Bootstrap", "MySQL"], 
+                image: "Screenshot (273).png",
+                githubLink: "https://github.com/diki130704/ppdb-online"
+            },
+            { 
+                id: 3, 
+                title: "PPDB Online", 
+                tagline: "Platform berbasis Mobile Penerimaan Peserta Didik Baru", 
+                description: "Developed using the Flutter framework as a mobile extension of the web-based student admission system, this application allows applicants to easily register and track their status directly from their smartphones, offering a more accessible and seamless user experience.", 
+                tech: ["Flutter"], 
+                image: "Screenshot 2025-11-26 131112.png",
+                githubLink: "https://github.com/diki130704/flutter-pkl" 
+            }
+        ];
+
+        const certificatesData = [
+            { id: 1, title: "InnovAItion: AI Skilling for Young Workers", issuer: "Plan International", date: "Oct 2025", image: "Certificate_of_Completion-1_page-0001.jpg" },
+            { id: 2, title: "EPrT (English Proficiency Test)", issuer: "Lac", date: "Oct 2024", image: "e-certificate EPrT_Diki Alif Taufik-1_page-0001.jpg" },
+        ];
+
+        const techStackData = [
+            { name: "HTML5", icon: "devicon-html5-plain" },
+            { name: "CSS3", icon: "devicon-css3-plain" },
+            { name: "JavaScript", icon: "devicon-javascript-plain" },
+            { name: "Bootstrap", icon: "devicon-bootstrap-plain" },
+            { name: "Tailwind", icon: "devicon-tailwindcss-original" },
+            { name: "Java", icon: "devicon-java-plain" },
+            { name: "PHP", icon: "devicon-php-plain" },
+            { name: "Python", icon: "devicon-python-plain" },
+            { name: "Laravel", icon: "devicon-laravel-original" },
+            { name: "React", icon: "devicon-react-original" },
+            { name: "MySQL", icon: "devicon-mysql-plain" },
+            { name: "Oracle", icon: "devicon-oracle-original" },
+            { name: "MongoDB", icon: "devicon-mongodb-plain" },
+            { name: "Flutter", icon: "devicon-flutter-plain" },
+            { name: "Google Colab", icon: "devicon-googlecolab-plain" },
+            { name: "GitHub", icon: "devicon-github-original" },
+            { name: "WordPress", icon: "devicon-wordpress-plain" },
+            { name: "Figma", icon: "devicon-figma-plain" }
+        ];
+
+        // --- EXTENDED KNOWLEDGE BASE (30+ Questions) ---
+        const knowledgeBase = [
+            // Greetings
+            { keywords: ["hi", "hello", "halo", "hey", "greetings", "selamat", "morning", "afternoon", "evening"], answer: "Hello! I'm Diki's virtual assistant. Ready to answer your questions!" },
+            { keywords: ["who are you", "what are you", "bot"], answer: "I am a React-based chatbot designed to showcase Diki's portfolio. I run on logic and a bit of magic." },
+        
+            // Personal Basics
+            { keywords: ["name", "who is diki", "full name"], answer: "My name is Diki Alif Taufik." },
+            { keywords: ["old", "age", "birthday", "born"], answer: "I'm currently in my 20s, always leveling up my skills." },
+            { keywords: ["from", "live", "location", "country", "where", "stay", "address", "city"], answer: "I am based in Bandung, Indonesia, but I work effectively with global teams remotely." },
+            
+            // Professional / Work
+            { keywords: ["job", "hire", "work", "available", "opportunity", "open to work", "freelance"], answer: "I'm open to projects if my schedule allows. Let's discuss your needs and see if I can help!" },
+            { keywords: ["intern"], answer: "Yes, I am looking for internship opportunities to apply my skills in the real world." },
+            { keywords: ["remote"], answer: "Remote work is perfect for me as it fits around my university schedule." },
+            { keywords: ["cv", "resume", "curriculum vitae", "download"], answer: "You can download my CV by clicking the 'Download CV' button in the navigation bar." },
+            { keywords: ["contact", "email", "reach", "phone", "whatsapp"], answer: "Reach me at dikialif550@gmail.com." },
+            { keywords: ["rate", "salary", "price", "cost"], answer: "My rates are competitive and depend on project scope. Let's discuss via email." },
+            { keywords: ["experience", "years", "background"], answer: "I have experience in Full Stack Web Development, working on various projects from e-commerce to school admission." },
+
+            // Tech & Skills
+            { keywords: ["skill", "stack", "technology", "tech", "program", "code"], answer: "I specialize in React, Next.js, Node.js, Python, TensorFlow, and Tailwind CSS." },
+            { keywords: ["language"], answer: "I speak Indonesian (Native), English (Professional), and I write JavaScript & Python." },
+            { keywords: ["os", "operating system", "linux", "windows", "mac"], answer: "I prefer Unix-based environments. Linux/Mac is my sweet spot for development." },
+            { keywords: ["editor", "ide", "vscode", "vim"], answer: "VS Code is my daily driver. It's versatile and powerful." },
+            
+            // Favorites
+            { keywords: ["color", "colour"], answer: "Cyan (#00F0FF) is my favorite. It represents the future and technology." },
+            { keywords: ["quote", "motto", "philosophy", "QOTD"], answer: "\"The only way to do great work is to love what you do.\" - Steve Jobs." },
+            { keywords: ["hobby", "interest", "free time"], answer: "I enjoy football match and exploring new tech." },
+            { keywords: ["movie", "film", "cinema"], answer: "Interstellar and The Matrix. I love mind-bending sci-fi." },
+            { keywords: ["music", "song", "listen", "band"], answer: "Lo-Fi beats and Synthwave help me focus while coding." },
+            { keywords: ["series", "tv", "show", "netflix"], answer: "Mr. Robot and Silicon Valley are top tier for devs!" },
+            { keywords: ["sport", "club", "team", "football"], answer: "Persib Bandung, without a doubt. I've supported them since I was a kid." },
+            { keywords: ["food", "eat", "meal"], answer: "My absolute favorite is blood clam. Nothing beats them with a spicy sauce!" },
+            { keywords: ["coffee", "tea", "drink"], answer: "Coffee. Definitely coffee. It converts caffeine into code." },
+            
+            // Personality & Random
+            { keywords: ["joke", "funny", "laugh"], answer: "Why do programmers prefer dark mode? Because light attracts bugs!" },
+            { keywords: ["secret", "hidden"], answer: "There is no secret. Just hard work and a lot of Googling." },
+            { keywords: ["education", "degree", "university", "study", "school"], answer: "I'm currently pursuing a Diploma in Information Systems at Telkom University, Bandung. I expect to graduate on time in 2027." },
+            { keywords: ["strength", "good at"], answer: "I learn fast and adapt quickly to new technologies." },
+            { keywords: ["weakness", "bad at"], answer: "I often spend extra time making sure the interface looks absolutely flawless." },
+            { keywords: ["goal", "future", "dream"], answer: "My goal is to build impactful software that solves real human problems." },
+            { keywords: ["dark mode", "theme"], answer: "Dark mode all the way. It's better for the eyes." },
+            { keywords: ["personality", "MBTI", "mbti"], answer: "I'm an ISTJ 5w4. In simple terms: I am highly organized and logical (ISTJ), but I also love analyzing complex problems deeply (5w4)." },
+            { keywords: ["why hire", "why you"], answer: "I don't just write code; I build solutions. I care about user experience and scalable architecture." }
+        ];
+
+        // --- COMPONENTS ---
+
+        const Navbar = ({ lang, setLang, t }) => {
+            const [scrolled, setScrolled] = useState(false);
+            const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+            useEffect(() => {
+                const handleScroll = () => setScrolled(window.scrollY > 50);
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            const scrollTo = (id) => {
+                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+                setMobileMenuOpen(false);
+            };
+
+            return (
+                <nav className={`fixed w-full z-50 transition-all duration-300 border-b ${scrolled ? 'bg-void/90 backdrop-blur-md border-white/10 py-3' : 'bg-transparent border-transparent py-6'}`}>
+                    <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+                        <div className="font-heading font-bold text-2xl tracking-tighter cursor-pointer" onClick={() => scrollTo('home')}>
+                            DAT<span className="text-cyan-400">.</span>
+                        </div>
+                        <div className="hidden md:flex items-center gap-8 font-mono text-sm">
+                            {t.nav.map((item, idx) => {
+                                const sectionIds = ['home', 'about', 'showcase', 'contact'];
+                                return (
+                                    <button key={idx} onClick={() => scrollTo(sectionIds[idx])} className="relative group hover:text-cyan-400 transition-colors">
+                                        {item}
+                                        <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-cyan-400 transition-all group-hover:w-full"></span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                        <div className="hidden md:flex items-center gap-6">
+                            <div className="flex gap-2 bg-white/5 p-1.5 rounded-md border border-white/5">
+                                <button onClick={() => setLang('en')} className={`flag-btn p-1 ${lang === 'en' ? 'active' : ''}`} title="English">
+                                    <img src="https://flagcdn.com/w40/gb.png" alt="UK" className="w-6 h-4 object-cover rounded-[2px]" />
+                                </button>
+                                <button onClick={() => setLang('id')} className={`flag-btn p-1 ${lang === 'id' ? 'active' : ''}`} title="Indonesia">
+                                    <img src="https://flagcdn.com/w40/id.png" alt="ID" className="w-6 h-4 object-cover rounded-[2px]" />
+                                </button>
+                            </div>
+                            <a href="#" className="bg-cyan-400 text-void font-bold px-5 py-2 rounded-sm hover:bg-cyan-500 transition-colors hover:shadow-neon text-sm font-heading">
+                                Download CV
+                            </a>
+                        </div>
+                        <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                            <Icon name={mobileMenuOpen ? "x" : "menu"} />
+                        </button>
+                    </div>
+                </nav>
+            );
+        };
+
+        const Hero = ({ t }) => {
+            const [text, setText] = useState("");
+            const [isDeleting, setIsDeleting] = useState(false);
+            const [loopNum, setLoopNum] = useState(0);
+            const [delta, setDelta] = useState(150);
+            
+            const roles = ["Junior Web Developer", "Tech Enthusiast", "Creative Problem Solver"];
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                let ticker = setInterval(() => tick(), delta);
+                return () => clearInterval(ticker);
+            }, [text, delta]);
+
+            const tick = () => {
+                let i = loopNum % roles.length;
+                let fullText = roles[i];
+                let updatedText = isDeleting ? fullText.substring(0, text.length - 1) : fullText.substring(0, text.length + 1);
+                setText(updatedText);
+                if (isDeleting) setDelta(50);
+                if (!isDeleting && updatedText === fullText) {
+                    setIsDeleting(true);
+                    setDelta(2000); 
+                } else if (isDeleting && updatedText === '') {
+                    setIsDeleting(false);
+                    setLoopNum(loopNum + 1);
+                    setDelta(150);
+                }
+            };
+
+            // Canvas Logic
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let animationFrameId;
+                let particles = [];
+                let mouse = { x: null, y: null };
+
+                const resize = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                    initParticles();
+                };
+
+                class Particle {
+                    constructor() {
+                        this.x = Math.random() * canvas.width;
+                        this.y = Math.random() * canvas.height;
+                        this.vx = (Math.random() - 0.5) * 0.3;
+                        this.vy = (Math.random() - 0.5) * 0.3;
+                        this.size = Math.random() * 2 + 1;
+                        this.color = Math.random() > 0.8 ? '#ffffff' : '#00F0FF';
+                        this.baseX = this.x;
+                        this.baseY = this.y;
+                    }
+
+                    update() {
+                        this.x += this.vx;
+                        this.y += this.vy;
+
+                        if (mouse.x != null) {
+                            let dx = mouse.x - this.x;
+                            let dy = mouse.y - this.y;
+                            let distance = Math.sqrt(dx * dx + dy * dy);
+                            let maxDistance = 150;
+                            if (distance < maxDistance) {
+                                let force = (maxDistance - distance) / maxDistance;
+                                this.x -= (dx / distance) * force * 2;
+                                this.y -= (dy / distance) * force * 2;
+                            }
+                        }
+
+                        if (this.x < 0) this.x = canvas.width;
+                        if (this.x > canvas.width) this.x = 0;
+                        if (this.y < 0) this.y = canvas.height;
+                        if (this.y > canvas.height) this.y = 0;
+                    }
+
+                    draw() {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                        ctx.fillStyle = this.color;
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = this.color;
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+                }
+
+                function initParticles() {
+                    particles = [];
+                    let numberOfParticles = (canvas.width * canvas.height) / 15000;
+                    for (let i = 0; i < numberOfParticles; i++) {
+                        particles.push(new Particle());
+                    }
+                }
+
+                function animate() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    for (let a = 0; a < particles.length; a++) {
+                        for (let b = a; b < particles.length; b++) {
+                            let dx = particles[a].x - particles[b].x;
+                            let dy = particles[a].y - particles[b].y;
+                            let distance = Math.sqrt(dx * dx + dy * dy);
+
+                            if (distance < 120) {
+                                ctx.beginPath();
+                                let opacityValue = 1 - (distance / 120);
+                                ctx.strokeStyle = 'rgba(0, 240, 255,' + opacityValue * 0.3 + ')';
+                                ctx.lineWidth = 0.5;
+                                ctx.moveTo(particles[a].x, particles[a].y);
+                                ctx.lineTo(particles[b].x, particles[b].y);
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                    particles.forEach(p => { p.update(); p.draw(); });
+                    animationFrameId = requestAnimationFrame(animate);
+                }
+
+                window.addEventListener('resize', resize);
+                window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+                resize();
+                animate();
+
+                return () => {
+                    window.removeEventListener('resize', resize);
+                    cancelAnimationFrame(animationFrameId);
+                };
+            }, []);
+
+            return (
+                <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+                    <div className="absolute inset-0 z-0 bg-void">
+                        <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full"></canvas>
+                        <div className="absolute bottom-0 left-0 w-full h-[30vh] perspective-grid opacity-30 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050b14_100%)] opacity-80 pointer-events-none"></div>
+                    </div>
+                    <div className="relative z-10 max-w-4xl mx-auto px-6 text-center space-y-8 animate-fade-up">
+                        <div className="inline-block mb-2">
+                            <span className="px-4 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-900/10 text-cyan-400 font-mono text-sm tracking-widest uppercase shadow-neon">
+                                {t.hero.greeting}
+                            </span>
+                        </div>
+                        <h1 className="text-6xl md:text-8xl font-heading font-bold leading-tight tracking-tighter text-white drop-shadow-2xl">
+                             {t.hero.im} <br/>
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-100 to-white animate-pulse">
+                                Diki Alif Taufik
+                            </span>
+                        </h1>
+                        <div className="h-12 flex items-center justify-center text-2xl md:text-3xl font-mono text-cyan-400">
+                            <span className="mr-3 opacity-50">{'>'}</span>
+                            <span className="font-bold border-r-2 border-cyan-400 pr-1 animate-pulse">{text}</span>
+                        </div>
+                        <p className="text-lg md:text-xl text-neutral-300 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
+                            {t.hero.subPitch}
+                        </p>
+                        <div className="flex flex-col sm:flex-row justify-center gap-6 pt-8">
+                            <button onClick={() => document.getElementById('showcase').scrollIntoView({behavior: 'smooth'})} 
+                                className="px-10 py-4 bg-cyan-400 text-void font-bold rounded-sm hover:bg-cyan-300 hover:shadow-neon transition-all hover:-translate-y-1 tracking-wide">
+                                {t.hero.btnPrimary}
+                            </button>
+                            <button onClick={() => document.getElementById('contact').scrollIntoView({behavior: 'smooth'})} 
+                                className="px-10 py-4 bg-transparent border border-white/20 text-white font-bold rounded-sm hover:border-cyan-400 hover:text-cyan-400 hover:bg-white/5 transition-all tracking-wide backdrop-blur-sm">
+                                {t.hero.btnSecondary}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/50 animate-bounce">
+                        <Icon name="chevrons-down" size={24} />
+                    </div>
+                </section>
+            );
+        };
+
+        const Chatbot = ({ t }) => {
+            const [messages, setMessages] = useState([
+                { sender: 'bot', text: "Hi there! I'm Diki's AI assistant. I'm here to answer any questions you have about my background!" }
+            ]);
+            const [input, setInput] = useState("");
+            const [isTyping, setIsTyping] = useState(false);
+            const chatEndRef = useRef(null);
+            
+            // Updated Quick Chips as requested
+            const quickChips = ["Education?", "Freelance?", "Strength?", "Weakness?", "MBTI?"];
+
+            // Improved auto-scroll to avoid page jumping (using 'nearest' block)
+            useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }, [messages, isTyping]);
+
+            const findAnswer = (query) => {
+                const lowerQuery = query.toLowerCase();
+                
+                // Indonesian Language Detection
+                // Check for common Indonesian words or particles
+                const indoKeywords = [
+                    "apa", "siapa", "dimana", "kapan", "kenapa", "bagaimana", "yang", "dan", "di", 
+                    "saya", "kamu", "bisa", "tolong", "terima", "kasih", "adalah", "tentang", 
+                    "seperti", "dari", "halo", "hai", "selamat", "tidak", "ya", "punya"
+                ];
+
+                // Check if any word in the query matches the Indonesian keywords using regex word boundary for accuracy
+                const isIndo = indoKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`, 'i').test(lowerQuery));
+
+                if (isIndo) {
+                    return "saat ini saya hanya tersedia dalam bahasa inggris";
+                }
+
+                // Search in Knowledge Base
+                for (let entry of knowledgeBase) {
+                    if (entry.keywords.some(keyword => lowerQuery.includes(keyword))) {
+                        return entry.answer;
+                    }
+                }
+
+                // Smart Fallback
+                return "That’s an interesting question! I haven't programmed an answer for that one yet.";
+            };
+
+            const handleSend = (txt) => {
+                const text = txt || input;
+                if (!text.trim()) return;
+                setMessages(prev => [...prev, { sender: 'user', text }]);
+                setInput("");
+                setIsTyping(true);
+                
+                // Simulate network/processing delay
+                setTimeout(() => {
+                    const response = findAnswer(text);
+                    setMessages(prev => [...prev, { sender: 'bot', text: response }]);
+                    setIsTyping(false);
+                }, 800);
+            };
+
+            return (
+                <section id="about" className="py-20 bg-void relative z-10">
+                    <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+                        <div>
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="w-12 h-1 bg-cyan-400"></div>
+                                <h2 className="text-cyan-400 font-mono tracking-wide uppercase">About Me</h2>
+                            </div>
+                            <h3 className="text-4xl font-heading font-bold mb-6">{t.about.title}</h3>
+                            <p className="text-neutral-400 text-lg mb-8 leading-relaxed">
+                                Reading traditional bio can be boring. So, I built this interactive chat to give you instant answers about my background.
+                            </p>
+                        </div>
+                        
+                        {/* Terminal Window with Enhanced Soft Border & Shadow */}
+                        <div className="glass-panel rounded-lg overflow-hidden flex flex-col h-[500px] border border-cyan-500/30 shadow-[0_0_20px_rgba(0,240,255,0.15)] relative transition-all duration-300 hover:shadow-neon">
+                            
+                            {/* Terminal Header - Updated with Cyan Robot Icon */}
+                            <div className="bg-neutral-900 p-3 border-b border-white/10 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                    {/* Icon Robot added here */}
+                                    <Icon name="bot" size={18} className="text-cyan-400 animate-pulse" />
+                                    <span className="font-mono text-xs text-cyan-400 tracking-wide font-bold">diki_assistant</span>
+                                </div>
+                                <div className="w-10"></div> {/* Spacer for centering */}
+                            </div>
+
+                            <div className="flex-1 p-6 overflow-y-auto space-y-4 font-mono text-sm">
+                                {messages.map((msg, idx) => (
+                                    <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        <div className={`max-w-[80%] p-3 rounded-md ${msg.sender === 'user' 
+                                            ? 'bg-cyan-400/10 border border-cyan-400 text-cyan-400' 
+                                            : 'bg-steel text-white border border-transparent'}`}>
+                                            {msg.text}
+                                        </div>
+                                    </div>
+                                ))}
+                                {isTyping && <div className="text-neutral-500 animate-pulse">Typing...</div>}
+                                <div ref={chatEndRef}></div>
+                            </div>
+                            <div className="p-3 bg-neutral-900/50 flex gap-2 overflow-x-auto border-t border-white/5 no-scrollbar">
+                                {quickChips.map((chip, idx) => (
+                                    <button key={idx} onClick={() => handleSend(chip)} className="whitespace-nowrap px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-mono hover:bg-cyan-400 hover:text-void transition-colors">
+                                        {chip}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="p-4 bg-neutral-900 border-t border-white/10 flex gap-2">
+                                <input 
+                                    type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} 
+                                    placeholder="Type a command..." className="flex-1 bg-transparent border-none outline-none font-mono text-sm text-white placeholder-neutral-600"
+                                />
+                                <button onClick={() => handleSend()} className="text-cyan-400"><Icon name="send" size={18} /></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const CertModal = ({ isOpen, onClose, cert }) => {
+            if (!isOpen || !cert) return null;
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose}></div>
+                    <div className="relative bg-neutral-900 border border-white/10 p-2 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col animate-fade-up shadow-2xl">
+                        <div className="flex justify-between items-center p-4 border-b border-white/10">
+                            <div><h3 className="text-xl font-bold text-white">{cert.title}</h3><p className="text-cyan-400 text-sm font-mono">{cert.issuer}</p></div>
+                            <button onClick={onClose} className="text-neutral-400 hover:text-white"><Icon name="x" size={24} /></button>
+                        </div>
+                        <div className="flex-1 overflow-hidden p-4 flex items-center justify-center bg-black">
+                            <img src={cert.image} alt={cert.title} className="max-w-full max-h-[70vh] object-contain rounded" />
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const PortfolioShowcase = ({ t }) => {
+            const [activeTab, setActiveTab] = useState('projects');
+            const [modalOpen, setModalOpen] = useState(false);
+            const [selectedCert, setSelectedCert] = useState(null);
+
+            const tabs = [
+                { id: 'projects', label: t.portfolio.tabs[0], icon: 'folder-open' },
+                { id: 'certificates', label: t.portfolio.tabs[1], icon: 'award' },
+                { id: 'stack', label: t.portfolio.tabs[2], icon: 'cpu' },
+            ];
+            const openCert = (cert) => { setSelectedCert(cert); setModalOpen(true); };
+
+            return (
+                <section id="showcase" className="py-24 relative z-10">
+                    <CertModal isOpen={modalOpen} onClose={() => setModalOpen(false)} cert={selectedCert} />
+                    <div className="max-w-7xl mx-auto px-6">
+                        <div className="text-center mb-16">
+                            <h2 className="text-5xl font-heading font-bold mb-4 text-white drop-shadow-lg">{t.portfolio.title}</h2>
+                            <p className="text-neutral-400 max-w-2xl mx-auto">{t.portfolio.subtitle}</p>
+                        </div>
+                        <div className="flex justify-center mb-16">
+                            <div className="bg-white/5 p-1.5 rounded-2xl flex backdrop-blur-md border border-white/10 shadow-xl">
+                                {tabs.map(tab => (
+                                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-3 px-8 py-4 rounded-xl font-mono text-sm transition-all duration-300 ${activeTab === tab.id ? 'bg-gradient-to-r from-cyan-900/50 to-blue-900/50 border border-cyan-500/30 text-cyan-400 font-bold shadow-neon' : 'text-neutral-400 hover:text-white hover:bg-white/5'}`}>
+                                        <Icon name={tab.icon} size={18} /> {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="min-h-[400px]">
+                            {activeTab === 'projects' && (
+                                <div className="grid md:grid-cols-3 gap-8 animate-fade-up">
+                                    {projectsData.map(project => (
+                                        <div key={project.id} className="group relative bg-glass border border-white/10 rounded-2xl overflow-hidden hover:border-cyan-400/50 hover:shadow-neon-strong transition-all duration-500 hover:-translate-y-2 flex flex-col h-full">
+                                            <div className="h-52 overflow-hidden relative">
+                                                <div className="absolute inset-0 bg-neutral-900/40 group-hover:bg-transparent transition-all z-10 duration-500"></div>
+                                                <img src={project.image} alt={project.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+                                            </div>
+                                            <div className="p-8 flex flex-col flex-1">
+                                                <div className="mb-4">
+                                                    <h3 className="text-2xl font-heading font-bold text-white group-hover:text-cyan-400 transition-colors mb-1">{project.title}</h3>
+                                                    <p className="text-xs font-mono text-cyan-400 tracking-wider uppercase">{project.tagline}</p>
+                                                </div>
+                                                <p className="text-sm text-neutral-300 mb-6 leading-relaxed flex-1">{project.description}</p>
+                                                
+                                                {/* Adjusted Github Layout and Links */}
+                                                <div className="flex justify-between items-center mb-6">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {project.tech.map(t => <span key={t} className="text-[10px] font-bold font-mono px-3 py-1 rounded-full bg-cyan-900/20 border border-cyan-500/20 text-cyan-300">{t}</span>)}
+                                                    </div>
+                                                    <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="text-neutral-400 hover:text-white transition-colors">
+                                                        <Icon name="github" size={20} />
+                                                    </a>
+                                                </div>
+
+                                                {/* Commented Out Live Demo as requested */}
+                                                {/* <div className="pt-4 border-t border-white/10 flex justify-between items-center mt-auto">
+                                                    <a href="#" className="text-sm font-bold text-white hover:text-cyan-400 flex items-center gap-2 transition-colors"><Icon name="external-link" size={16} /> Live Demo</a>
+                                                </div> */}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {activeTab === 'certificates' && (
+                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 animate-fade-up">
+                                    {certificatesData.map(cert => (
+                                        <div key={cert.id} onClick={() => openCert(cert)} className="group relative cursor-pointer rounded-xl overflow-hidden border border-white/10 bg-neutral-900 aspect-[4/3] hover:shadow-neon hover:border-cyan-400 transition-all duration-300">
+                                            <img src={cert.image} alt={cert.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                                            <div className="absolute inset-0 cert-overlay flex flex-col justify-end p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                                    <h4 className="font-bold text-white text-lg leading-tight mb-1">{cert.title}</h4>
+                                                    <div className="flex justify-between items-center text-xs font-mono text-cyan-400">
+                                                        <span>{cert.issuer}</span><span className="bg-cyan-900/50 px-2 py-1 rounded text-white flex gap-1 items-center"><Icon name="eye" size={12} /> View</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    
+                                    {/* More to Come Placeholder */}
+                                    <div className="rounded-xl border border-dashed border-white/10 bg-white/5 flex flex-col items-center justify-center p-6 aspect-[4/3] text-center hover:border-cyan-400/50 transition-colors group cursor-default">
+                                        <div className="w-12 h-12 rounded-full bg-cyan-900/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                            <Icon name="plus" className="text-cyan-400" />
+                                        </div>
+                                        <h4 className="font-heading font-bold text-white text-lg group-hover:text-cyan-400 transition-colors">{t.portfolio.more}</h4>
+                                        <p className="text-xs font-mono text-neutral-500 mt-2">{t.portfolio.moreSub}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {activeTab === 'stack' && (
+                                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-8 animate-fade-up px-4">
+                                    {techStackData.map((tech, idx) => (
+                                        <div key={idx} className="bg-glass border border-white/10 p-6 rounded-2xl flex flex-col items-center justify-center gap-4 hover:border-cyan-400 hover:bg-white/10 transition-all duration-300 hover:-translate-y-2 group cursor-default">
+                                            <i className={`${tech.icon} colored text-6xl group-hover:scale-110 transition-transform duration-300 filter grayscale group-hover:grayscale-0 opacity-70 group-hover:opacity-100`}></i>
+                                            <span className="font-mono text-xs text-neutral-500 group-hover:text-white transition-colors">{tech.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const Contact = ({ t }) => {
+            const [form, setForm] = useState({ name: '', email: '', message: '' });
+            const [status, setStatus] = useState(null);
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                setStatus('sending');
+                setTimeout(() => {
+                    setStatus('success');
+                    setForm({ name: '', email: '', message: '' });
+                    setTimeout(() => setStatus(null), 3000);
+                }, 1500);
+            };
+
+            return (
+                <section id="contact" className="py-20 bg-neutral-900 border-t border-white/5 relative z-10">
+                    <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16">
+                        <div className="space-y-8">
+                            <h2 className="text-4xl font-heading font-bold">{t.contact.title}<br/><span className="text-cyan-400">{t.contact.titleHigh}</span></h2>
+                            <p className="text-neutral-400 text-lg">{t.contact.desc}</p>
+                            <div className="space-y-4">
+                                <a href="mailto:dikialif550@gmail.com" className="flex items-center gap-4 p-4 bg-white/5 rounded border border-white/5 hover:border-cyan-400 transition-all group">
+                                    <div className="p-3 bg-neutral-800 rounded text-cyan-400 group-hover:shadow-neon transition-shadow"><Icon name="mail" /></div>
+                                    <div><div className="text-xs text-neutral-500 uppercase font-mono">{t.contact.email}</div><div className="text-white">dikialif550@gmail.com</div></div>
+                                </a>
+                                <div className="flex items-center gap-4 p-4 bg-white/5 rounded border border-white/5 hover:border-cyan-400 transition-all group">
+                                    <div className="p-3 bg-neutral-800 rounded text-cyan-400 group-hover:shadow-neon transition-shadow"><Icon name="map-pin" /></div>
+                                    <div>
+                                        <div className="text-xs text-neutral-500 uppercase font-mono">{t.contact.loc}</div>
+                                        <div className="text-white flex items-center gap-3">
+                                            Bandung
+                                            <div className="flex items-center gap-1.5 text-cyan-400 font-mono text-xs bg-cyan-900/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                                                <Icon name="clock" size={12} />
+                                                <span>WIB (UTC+7)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-6 bg-glass p-8 rounded-lg border border-white/10">    <div className="grid md:grid-cols-2 gap-6">
+                                <div className="space-y-2"><label className="text-xs font-mono text-neutral-400">{t.contact.name}</label><input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="John Doe" /></div>
+                                <div className="space-y-2"><label className="text-xs font-mono text-neutral-400">{t.contact.email}</label><input type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="john@example.com" /></div>
+                            </div>
+                            <div className="space-y-2"><label className="text-xs font-mono text-neutral-400">{t.contact.msg}</label><textarea rows="4" required value={form.message} onChange={e => setForm({...form, message: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="Tell me about your thoughts..."></textarea></div>
+                            <button type="submit" className="w-full py-4 bg-cyan-400 text-void font-bold rounded-sm hover:shadow-neon transition-all hover:bg-cyan-500 flex justify-center items-center gap-2">{status === 'sending' ? t.contact.sending : status === 'success' ? t.contact.sent : t.contact.btn} <Icon name="arrow-right" size={18} /></button>
+                        </form>
+                    </div>
+                </section>
+            );
+        };
+
+        const Footer = ({ t }) => (
+            <footer className="bg-void border-t border-white/10 py-12 relative z-10">
+                <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="text-center md:text-left"><div className="font-heading font-bold text-xl tracking-tighter mb-2">DAT<span className="text-cyan-400">.</span></div><p className="text-neutral-500 text-sm font-mono">{t.footer.quote}</p></div>
+                    <div className="flex gap-6 text-neutral-400">
+                        <a href="https://github.com/dikialiftaufik?tab=repositories" className="hover:text-cyan-400 transition-colors"><Icon name="github" /></a>
+                        <a href="https://www.instagram.com/dikialif_/" className="hover:text-cyan-400 transition-colors"><Icon name="instagram" /></a>
+                    </div>
+                    <div className="text-neutral-600 text-xs font-mono text-center md:text-right"><p>© {new Date().getFullYear()} Diki Alif Taufik.</p><p>{t.footer.rights}</p></div>
+                </div>
+            </footer>
+        );
+
+        const App = () => {
+            const [lang, setLang] = useState('en');
+            const t = translations[lang];
+
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, []);
+
+            return (
+                <div className="min-h-screen text-titanium relative">
+                    <GlobalBackground />
+                    <Navbar lang={lang} setLang={setLang} t={t} />
+                    <Hero t={t} />
+                    <Chatbot t={t} />
+                    <PortfolioShowcase t={t} />
+                    <Contact t={t} />
+                    <Footer t={t} />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
