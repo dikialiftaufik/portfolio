@@ -108,10 +108,10 @@ create policy "messages_manage_admin" on public.messages
 -- Bucket portfolio-media: public read, authenticated write, 2 MB cap.
 -- Paths: projects/<kebab>.<ext>, certs/<kebab>.<ext> (see assets/README.md).
 
-insert into storage.buckets (id, name, public, file_size_limit)
+insert into storage.buckets (id, name, "public", file_size_limit)
 values ('portfolio-media', 'portfolio-media', true, 2097152)
 on conflict (id) do update
-  set public = true, file_size_limit = 2097152;
+  set "public" = true, file_size_limit = 2097152;
 
 drop policy if exists "media_read_public" on storage.objects;
 create policy "media_read_public" on storage.objects
