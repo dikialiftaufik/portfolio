@@ -177,6 +177,301 @@
             </li>
         );
 
+        // --- Storage upload (Task 5). Best-effort cleanup, never crash the save. ---
+        const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+        const ALLOWED_IMAGE = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/webp': 'webp' };
+
+        const normalizeFileName = (name) => String(name || '').toLowerCase()
+            .replace(/\.[a-z0-9]+$/, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+        const uploadImage = async (file, folder) => {
+            const ext = ALLOWED_IMAGE[file.type];
+            if (!ext) {
+                const e = new Error('Use a PNG, JPG, or WebP image.');
+                e.code = 'validation';
+                throw e;
+            }
+            if (file.size > MAX_IMAGE_BYTES) {
+                const e = new Error('Image is too large. Choose a file under 2 MB or paste a URL.');
+                e.code = 'validation';
+                throw e;
+            }
+            const base = normalizeFileName(file.name);
+            if (!base) {
+                const e = new Error('Rename the file with letters or numbers first.');
+                e.code = 'validation';
+                throw e;
+            }
+            const sb = await PortfolioStore.client();
+            const path = `${folder}/${base}.${ext}`;
+            const { error } = await sb.storage.from('portfolio-media').upload(path, file, { upsert: true, contentType: file.type });
+            if (error) throw error;
+            return sb.storage.from('portfolio-media').getPublicUrl(path).data.publicUrl;
+        };
+
+        const removeOldFile = async (url) => {
+            try {
+                if (!url || url.indexOf('portfolio-media/') === -1) return;
+                const path = url.split('portfolio-media/')[1];
+                const sb = await PortfolioStore.client();
+                if (sb) await sb.storage.from('portfolio-media').remove([path]);
+            } catch (e) { /* best-effort: log, don't crash */ }
+        };
+
+        const monthLabel = (monthValue) => {
+            const [y, m] = String(monthValue || '').split('-').map(Number);
+            if (!y || !m) return '';
+            try {
+                return new Date(y, m - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            } catch (e) { return ''; }
+        };
+
+        const fieldCls = (bad) => `w-full bg-neutral-900 border rounded p-3 text-white ${bad ? 'border-red-400' : 'border-white/10'}`;
+
+        // --- Project form ---
+        const ProjectForm = ({ initial, busy, serverError, onSubmit, onCancel }) => {
+            const [v, setV] = useState(() => ({
+                title: initial.title || '', tagline: initial.tagline || '',
+                description: initial.description || '', tech: (initial.tech || []).join(', '),
+                image: initial.image || '', githubLink: initial.githubLink || '',
+                sort_order: initial.sort_order ?? 0, mode: /^https?:\/\//.test(initial.image || '') || !initial.image ? 'url' : 'url', file: null
+            }));
+            const [errors, setErrors] = useState({});
+            const set = (k) => (e) => setV((s) => ({ ...s, [k]: e.target.value }));
+
+            const submit = (e) => {
+                e.preventDefault();
+                const errs = {};
+                if (v.title.trim().length < 3 || v.title.trim().length > 80) errs.title = 'Keep the title between 3 and 80 characters.';
+                if (v.description.trim().length > 500) errs.description = 'Keep the description under 500 characters.';
+                if (v.tech.split(',').map((x) => x.trim()).filter(Boolean).length < 1) errs.tech = 'Add at least one technology.';
+                if (v.mode === 'url' && !/^https?:\/\//.test(v.image.trim()) && !/^assets\//.test(v.image.trim())) errs.image = 'Paste an https URL or pick Upload.';
+                if (v.mode === 'upload' && !v.file && !v.image) errs.image = 'Choose a file first.';
+                if (v.githubLink.trim() && !/^https?:\/\//.test(v.githubLink.trim())) errs.githubLink = 'Use a full https URL or leave it empty.';
+                setErrors(errs);
+                const first = Object.keys(errs)[0];
+                if (first) {
+                    const el = document.getElementById('pf-' + first);
+                    if (el) el.focus();
+                    return;
+                }
+                onSubmit({
+                    title: v.title.trim(), tagline: v.tagline.trim(), description: v.description.trim(),
+                    tech: v.tech.split(',').map((x) => x.trim()).filter(Boolean),
+                    image: v.mode === 'url' ? v.image.trim() : v.image,
+                    githubLink: v.githubLink.trim() || null, sort_order: Number(v.sort_order) || 0
+                }, v.mode === 'upload' ? { file: v.file } : null);
+            };
+
+            return (
+                <form onSubmit={submit} className="bg-white/5 border border-white/10 rounded-lg p-6 space-y-4">
+                    <h3 className="font-heading font-bold text-white">{initial.id ? 'Edit project' : 'Add project'}</h3>
+                    {serverError ? <p aria-live="polite" className="text-red-300 text-sm">{serverError}</p> : null}
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label htmlFor="pf-title" className="text-xs font-mono text-neutral-400">TITLE</label>
+                            <input id="pf-title" value={v.title} onChange={set('title')} className={fieldCls(errors.title)} placeholder="My project" />
+                            {errors.title ? <p className="text-red-300 text-xs">{errors.title}</p> : null}
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="pf-tagline" className="text-xs font-mono text-neutral-400">TAGLINE</label>
+                            <input id="pf-tagline" value={v.tagline} onChange={set('tagline')} className={fieldCls(false)} placeholder="One-line pitch" />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <label htmlFor="pf-description" className="text-xs font-mono text-neutral-400">DESCRIPTION ({v.description.trim().length}/500)</label>
+                        <textarea id="pf-description" rows="3" value={v.description} onChange={set('description')} className={fieldCls(errors.description)} />
+                        {errors.description ? <p className="text-red-300 text-xs">{errors.description}</p> : null}
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label htmlFor="pf-tech" className="text-xs font-mono text-neutral-400">TECH (comma-separated)</label>
+                            <input id="pf-tech" value={v.tech} onChange={set('tech')} className={fieldCls(errors.tech)} placeholder="React, Tailwind" />
+                            {errors.tech ? <p className="text-red-300 text-xs">{errors.tech}</p> : null}
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="pf-sort_order" className="text-xs font-mono text-neutral-400">ORDER</label>
+                            <input id="pf-sort_order" type="number" value={v.sort_order} onChange={set('sort_order')} className={fieldCls(false)} />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <span className="text-xs font-mono text-neutral-400">IMAGE</span>
+                        <div className="flex gap-4 text-sm">
+                            <label className="flex items-center gap-2"><input type="radio" checked={v.mode === 'url'} onChange={() => setV((s) => ({ ...s, mode: 'url' }))} /> URL</label>
+                            <label className="flex items-center gap-2"><input type="radio" checked={v.mode === 'upload'} onChange={() => setV((s) => ({ ...s, mode: 'upload' }))} /> Upload (under 2 MB)</label>
+                        </div>
+                        {v.mode === 'url' ? (
+                            <div className="space-y-1">
+                                <label htmlFor="pf-image" className="text-xs font-mono text-neutral-400">IMAGE URL</label>
+                                <input id="pf-image" value={v.image} onChange={set('image')} className={fieldCls(errors.image)} placeholder="https://…" />
+                                {errors.image ? <p className="text-red-300 text-xs">{errors.image}</p> : null}
+                            </div>
+                        ) : (
+                            <div className="space-y-1">
+                                <label htmlFor="pf-file" className="text-xs font-mono text-neutral-400">FILE (PNG, JPG, WebP)</label>
+                                <input id="pf-file" type="file" accept=".png,.jpg,.jpeg,.webp" onChange={(e) => setV((s) => ({ ...s, file: e.target.files[0] || null }))} className="w-full text-sm text-neutral-300" />
+                                <p className="text-neutral-500 text-xs font-mono">{v.file ? v.file.name : 'No file chosen.'} Compress it first — big files slow the site.</p>
+                                {errors.image ? <p className="text-red-300 text-xs">{errors.image}</p> : null}
+                            </div>
+                        )}
+                        {v.mode === 'url' && v.image ? <img src={v.image} alt="Preview" className="w-full aspect-video object-cover rounded border border-white/10" /> : null}
+                    </div>
+                    <div className="space-y-1">
+                        <label htmlFor="pf-githubLink" className="text-xs font-mono text-neutral-400">GITHUB (optional)</label>
+                        <input id="pf-githubLink" value={v.githubLink} onChange={set('githubLink')} className={fieldCls(errors.githubLink)} placeholder="https://github.com/…" />
+                        {errors.githubLink ? <p className="text-red-300 text-xs">{errors.githubLink}</p> : null}
+                    </div>
+                    <div className="flex justify-end gap-3">
+                        <button type="button" onClick={onCancel} disabled={busy} className="px-4 py-2 rounded border border-white/20 text-sm disabled:opacity-50">Cancel</button>
+                        <button type="submit" disabled={busy} className="px-4 py-2 rounded bg-cyan-400 text-void text-sm font-bold disabled:opacity-50">{busy ? 'Saving…' : 'Save project'}</button>
+                    </div>
+                </form>
+            );
+        };
+
+        // --- Certificate form ---
+        const CertForm = ({ initial, busy, serverError, onSubmit, onCancel }) => {
+            const [v, setV] = useState(() => ({ title: initial.title || '', issuer: initial.issuer || '', month: '', image: initial.image || '', sort_order: initial.sort_order ?? 0, file: null }));
+            const [errors, setErrors] = useState({});
+            const set = (k) => (e) => setV((s) => ({ ...s, [k]: e.target.value }));
+            const submit = (e) => {
+                e.preventDefault();
+                const errs = {};
+                if (v.title.trim().length < 3 || v.title.trim().length > 120) errs.title = 'Keep the title between 3 and 120 characters.';
+                if (v.issuer.trim().length < 2) errs.issuer = 'Name the issuer.';
+                const label = initial.date && !v.month ? initial.date : monthLabel(v.month);
+                if (!/^[A-Z][a-z]{2} [0-9]{4}$/.test(label || '')) errs.month = 'Pick a month.';
+                if (!v.file && !v.image) errs.image = 'Choose a file or keep the current image.';
+                setErrors(errs);
+                if (Object.keys(errs)[0]) {
+                    const el = document.getElementById('cf-' + Object.keys(errs)[0]);
+                    if (el) el.focus();
+                    return;
+                }
+                onSubmit({ title: v.title.trim(), issuer: v.issuer.trim(), date: label, image: v.image, sort_order: Number(v.sort_order) || 0 }, v.file ? { file: v.file } : null);
+            };
+            return (
+                <form onSubmit={submit} className="bg-white/5 border border-white/10 rounded-lg p-6 space-y-4">
+                    <h3 className="font-heading font-bold text-white">{initial.id ? 'Edit certificate' : 'Add certificate'}</h3>
+                    {serverError ? <p aria-live="polite" className="text-red-300 text-sm">{serverError}</p> : null}
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label htmlFor="cf-title" className="text-xs font-mono text-neutral-400">TITLE</label>
+                            <input id="cf-title" value={v.title} onChange={set('title')} className={fieldCls(errors.title)} />
+                            {errors.title ? <p className="text-red-300 text-xs">{errors.title}</p> : null}
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="cf-issuer" className="text-xs font-mono text-neutral-400">ISSUER</label>
+                            <input id="cf-issuer" value={v.issuer} onChange={set('issuer')} className={fieldCls(errors.issuer)} />
+                            {errors.issuer ? <p className="text-red-300 text-xs">{errors.issuer}</p> : null}
+                        </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label htmlFor="cf-month" className="text-xs font-mono text-neutral-400">MONTH {initial.date && !v.month ? `(current: ${initial.date})` : ''}</label>
+                            <input id="cf-month" type="month" value={v.month} onChange={set('month')} className={fieldCls(errors.month)} />
+                            {errors.month ? <p className="text-red-300 text-xs">{errors.month}</p> : null}
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="cf-sort_order" className="text-xs font-mono text-neutral-400">ORDER</label>
+                            <input id="cf-sort_order" type="number" value={v.sort_order} onChange={set('sort_order')} className={fieldCls(false)} />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <label htmlFor="cf-file" className="text-xs font-mono text-neutral-400">FILE (PNG, JPG, WebP, under 2 MB){v.image ? ' — current kept unless replaced' : ''}</label>
+                        <input id="cf-file" type="file" accept=".png,.jpg,.jpeg,.webp" onChange={(e) => setV((s) => ({ ...s, file: e.target.files[0] || null }))} className="w-full text-sm text-neutral-300" />
+                        <p className="text-neutral-500 text-xs font-mono">{v.file ? v.file.name : 'No file chosen.'}</p>
+                        {errors.image ? <p className="text-red-300 text-xs">{errors.image}</p> : null}
+                    </div>
+                    <div className="flex justify-end gap-3">
+                        <button type="button" onClick={onCancel} disabled={busy} className="px-4 py-2 rounded border border-white/20 text-sm disabled:opacity-50">Cancel</button>
+                        <button type="submit" disabled={busy} className="px-4 py-2 rounded bg-cyan-400 text-void text-sm font-bold disabled:opacity-50">{busy ? 'Saving…' : 'Save certificate'}</button>
+                    </div>
+                </form>
+            );
+        };
+
+        // --- Tech form ---
+        const TechForm = ({ initial, busy, serverError, onSubmit, onCancel }) => {
+            const [v, setV] = useState(() => ({ name: initial.name || '', icon: initial.icon || '', sort_order: initial.sort_order ?? 0 }));
+            const [errors, setErrors] = useState({});
+            const set = (k) => (e) => setV((s) => ({ ...s, [k]: e.target.value }));
+            const submit = (e) => {
+                e.preventDefault();
+                const errs = {};
+                if (!v.name.trim()) errs.name = 'Name the technology.';
+                if (!v.icon.trim()) errs.icon = 'Add a devicon class, e.g. devicon-react-original.';
+                setErrors(errs);
+                if (Object.keys(errs)[0]) {
+                    const el = document.getElementById('tf-' + Object.keys(errs)[0]);
+                    if (el) el.focus();
+                    return;
+                }
+                onSubmit({ name: v.name.trim(), icon: v.icon.trim(), sort_order: Number(v.sort_order) || 0 }, null);
+            };
+            return (
+                <form onSubmit={submit} className="bg-white/5 border border-white/10 rounded-lg p-6 space-y-4">
+                    <h3 className="font-heading font-bold text-white">{initial.id ? 'Edit tech' : 'Add tech'}</h3>
+                    {serverError ? <p aria-live="polite" className="text-red-300 text-sm">{serverError}</p> : null}
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label htmlFor="tf-name" className="text-xs font-mono text-neutral-400">NAME</label>
+                            <input id="tf-name" value={v.name} onChange={set('name')} className={fieldCls(errors.name)} placeholder="React" />
+                            {errors.name ? <p className="text-red-300 text-xs">{errors.name}</p> : null}
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="tf-icon" className="text-xs font-mono text-neutral-400">ICON CLASS</label>
+                            <input id="tf-icon" value={v.icon} onChange={set('icon')} className={fieldCls(errors.icon)} placeholder="devicon-react-original" />
+                            {errors.icon ? <p className="text-red-300 text-xs">{errors.icon}</p> : null}
+                        </div>
+                    </div>
+                    {v.icon ? <p className="text-neutral-400 text-sm">Preview: <i className={`${v.icon} colored text-3xl`}></i></p> : null}
+                    <div className="space-y-1">
+                        <label htmlFor="tf-sort_order" className="text-xs font-mono text-neutral-400">ORDER</label>
+                        <input id="tf-sort_order" type="number" value={v.sort_order} onChange={set('sort_order')} className={fieldCls(false)} />
+                    </div>
+                    <div className="flex justify-end gap-3">
+                        <button type="button" onClick={onCancel} disabled={busy} className="px-4 py-2 rounded border border-white/20 text-sm disabled:opacity-50">Cancel</button>
+                        <button type="submit" disabled={busy} className="px-4 py-2 rounded bg-cyan-400 text-void text-sm font-bold disabled:opacity-50">{busy ? 'Saving…' : 'Add tech'}</button>
+                    </div>
+                </form>
+            );
+        };
+
+        // --- Inbox (visitor messages) ---
+        const InboxSection = ({ items, onToggleRead, onDelete }) => (
+            <section aria-label="Inbox">
+                <div className="flex items-center gap-3 mb-4">
+                    <h2 className="font-heading font-bold text-xl text-white">Inbox</h2>
+                    <span className="font-mono text-xs text-neutral-500">{items.filter((m) => !m.is_read).length} unread</span>
+                </div>
+                {items.length === 0 ? (
+                    <p className="text-neutral-500 text-sm font-mono border border-dashed border-white/10 rounded p-6 text-center">No messages yet.</p>
+                ) : (
+                    <ul className="space-y-2 admin-rows">
+                        {items.map((m) => (
+                            <li key={m.id} className="p-4 bg-white/5 border border-white/5 rounded">
+                                <div className="flex items-center gap-3 mb-1">
+                                    {!m.is_read ? <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" aria-label="Unread"></span> : null}
+                                    <span className="text-white text-sm font-bold truncate">{m.name}</span>
+                                    <a href={`mailto:${m.email}`} className="text-xs font-mono text-neutral-400 hover:text-cyan-400 truncate">{m.email}</a>
+                                    <span className="ml-auto text-[10px] font-mono text-neutral-600 shrink-0">{m.created_at ? new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>
+                                </div>
+                                <p className="text-neutral-300 text-sm mb-3 whitespace-pre-wrap">{m.message}</p>
+                                <div className="flex gap-2">
+                                    {!m.is_read ? <button onClick={() => onToggleRead(m)} aria-label={`Mark message from ${m.name} as read`} className="px-3 py-1.5 text-xs font-mono border border-white/15 rounded hover:border-cyan-400 hover:text-cyan-400">Mark as read</button> : null}
+                                    <a href={`mailto:${m.email}?subject=${encodeURIComponent('Re: your message to Diki Alif Taufik')}`} className="px-3 py-1.5 text-xs font-mono border border-white/15 rounded hover:border-cyan-400 hover:text-cyan-400">Reply</a>
+                                    <button onClick={() => onDelete(m)} aria-label={`Delete message from ${m.name}`} className="px-3 py-1.5 text-xs font-mono border border-red-500/40 text-red-300 rounded hover:bg-red-500 hover:text-white">Delete message</button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
+        );
+
         const AdminApp = () => {
             const [authState, setAuthState] = useState('checking');
             const [configured, setConfigured] = useState(false);
@@ -186,7 +481,10 @@
             const [deleteTarget, setDeleteTarget] = useState(null);
             const [deleteBusy, setDeleteBusy] = useState(false);
             const [deleteError, setDeleteError] = useState(null);
-            const [pendingEdit, setPendingEdit] = useState(null);
+            const [editing, setEditing] = useState(null);
+            const [formBusy, setFormBusy] = useState(false);
+            const [formError, setFormError] = useState(null);
+            const [messages, setMessages] = useState([]);
 
             useEffect(() => {
                 let off = null;
@@ -210,9 +508,11 @@
                 Promise.all([
                     PortfolioStore.list('projects'),
                     PortfolioStore.list('certificates'),
-                    PortfolioStore.list('tech_stack')
-                ]).then(([p, c, t]) => {
+                    PortfolioStore.list('tech_stack'),
+                    PortfolioStore.list('messages')
+                ]).then(([p, c, t, m]) => {
                     setLists({ projects: p.data, certificates: c.data, tech_stack: t.data });
+                    setMessages(m.data.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
                     setSource(p.source === 'live' && c.source === 'live' && t.source === 'live' ? 'live' : 'seed');
                 }).catch(() => setNotice("Couldn't load content. Check your connection and try again."));
             };
@@ -220,7 +520,7 @@
             useEffect(() => {
                 if (authState !== 'signed-in') return;
                 load();
-                const offs = ['projects', 'certificates', 'tech_stack'].map((col) =>
+                const offs = ['projects', 'certificates', 'tech_stack', 'messages'].map((col) =>
                     PortfolioStore.subscribe(col, load)
                 );
                 return () => offs.forEach((off) => off());
@@ -228,6 +528,40 @@
 
             const logout = () => {
                 PortfolioStore.client().then((sb) => sb.auth.signOut());
+            };
+
+            const addLabel = (collection) => collection === 'projects' ? 'Add project' : collection === 'certificates' ? 'Add certificate' : 'Add tech';
+            const FormFor = (collection) => collection === 'projects' ? ProjectForm : collection === 'certificates' ? CertForm : TechForm;
+
+            const saveForm = (collection, row, values, fileInfo) => {
+                setFormBusy(true);
+                setFormError(null);
+                const folder = collection === 'projects' ? 'projects' : 'certs';
+                (async () => {
+                    let image = values.image;
+                    if (fileInfo && fileInfo.file) image = await uploadImage(fileInfo.file, folder);
+                    const payload = { ...values, image };
+                    const old = row ? row.image : null;
+                    const saved = row
+                        ? await PortfolioStore.update(collection, row.id, payload)
+                        : await PortfolioStore.create(collection, payload);
+                    if (old && old !== image) removeOldFile(old);
+                    return saved;
+                })().then(() => {
+                    setEditing(null);
+                    setNotice(`${deleteNoun(collection)[0].toUpperCase() + deleteNoun(collection).slice(1)} saved.`);
+                    load();
+                }).catch((e) => {
+                    if (e && e.code === 'denied') setFormError("Couldn't save. Your session expired. Log in again.");
+                    else if (e && (e.code === '23505' || /duplicate|already exists/i.test(e.message || ''))) setFormError('That tech name already exists. Use a different name.');
+                    else if (e && e.code === 'validation') setFormError(e.message);
+                    else setFormError("Couldn't save. Check your connection and try again.");
+                }).finally(() => setFormBusy(false));
+            };
+
+            const toggleRead = (m) => {
+                PortfolioStore.update('messages', m.id, { is_read: true }).then(load)
+                    .catch(() => setNotice("Couldn't update the message. Check your connection and try again."));
             };
 
             const confirmDelete = () => {
@@ -245,7 +579,7 @@
             };
 
             return (
-                <div className="min-h-screen max-w-4xl mx-auto px-6 py-10">
+                <div className="admin-console min-h-screen max-w-4xl mx-auto px-6 py-10">
                     <header className="flex items-center justify-between mb-10">
                         <div>
                             <p className="font-mono text-xs text-cyan-400 tracking-widest uppercase">Portfolio console</p>
@@ -270,25 +604,30 @@
                                         <h2 className="font-heading font-bold text-xl text-white">{sec.title}</h2>
                                         <span className="font-mono text-[10px] px-2 py-0.5 rounded border border-cyan-500/30 text-cyan-300">{source === 'live' ? 'Live' : 'Cached'}</span>
                                         <span className="font-mono text-xs text-neutral-500">{lists[sec.id].length}</span>
+                                        <button onClick={() => { setFormError(null); setEditing({ collection: sec.id, row: null }); }} className="ml-auto px-3 py-1.5 text-xs font-mono border border-white/15 rounded hover:border-cyan-400 hover:text-cyan-400">{sec.id === 'projects' ? 'Add project' : sec.id === 'certificates' ? 'Add certificate' : 'Add tech'}</button>
                                     </div>
                                     {lists[sec.id].length === 0 ? (
                                         <p className="text-neutral-500 text-sm font-mono border border-dashed border-white/10 rounded p-6 text-center">Nothing here yet. Add your first {sec.title.toLowerCase()} with the edit form.</p>
                                     ) : (
-                                        <ul className="space-y-2">
+                                        <ul className="space-y-2 admin-rows">
                                             {lists[sec.id].map((row) => (
                                                 <Row key={row.id} collection={sec.id} row={row}
-                                                    onEdit={(c, r) => setPendingEdit({ collection: c, row: r })}
+                                                    onEdit={(c, r) => { setFormError(null); setEditing({ collection: c, row: r }); }}
                                                     onDelete={(c, r) => { setDeleteError(null); setDeleteTarget({ collection: c, row: r }); }} />
                                             ))}
                                         </ul>
                                     )}
                                 </section>
                             ))}
-                            {pendingEdit ? (
-                                <p aria-live="polite" className="text-neutral-400 text-sm font-mono border border-white/10 rounded p-4">
-                                    Editing “{rowTitle(pendingEdit.collection, pendingEdit.row)}” isn&apos;t here yet. It ships with the next update. <button onClick={() => setPendingEdit(null)} className="text-cyan-400 hover:underline">Dismiss</button>
-                                </p>
-                            ) : null}
+                            {editing ? (() => {
+                                const Form = FormFor(editing.collection);
+                                return <Form initial={editing.row || {}} busy={formBusy} serverError={formError}
+                                    onCancel={() => { if (!formBusy) setEditing(null); }}
+                                    onSubmit={(values, fileInfo) => saveForm(editing.collection, editing.row, values, fileInfo)} />;
+                            })() : null}
+                            <InboxSection items={messages}
+                                onToggleRead={toggleRead}
+                                onDelete={(m) => { setDeleteError(null); setDeleteTarget({ collection: 'messages', row: m }); }} />
                         </main>
                     ) : null}
 
