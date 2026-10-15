@@ -9,3 +9,6 @@ skills-lock.json
 
 # Supabase credentials (local only — example is committed instead)
 config.local.js
+
+# Planner scratch (local progress notes, not part of the site)
+.superpowers/
