@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Admin — Diki Alif Taufik</title>
+    <meta name="description" content="Content console for Diki Alif Taufik's portfolio. Sign in required.">
+
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+
+    <!-- Pinned versions only. SRI omitted — these vendors don't publish static hashes. -->
+    <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@0.469.0"></script>
+    <link rel="stylesheet" type='text/css' href="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/devicon.min.css" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { void: '#050b14', titanium: '#EDEDED' },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                        heading: ['"Space Grotesk"', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-void text-titanium font-sans antialiased">
+    <div id="admin-root"></div>
+
+    <script src="config.local.js" onerror="/* seed mode: no local backend config */"></script>
+    <script src="js/config.js"></script>
+    <script src="js/content.js"></script>
+    <script src="js/store.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const Icon = ({ name, size = 20, className }) => {
+            useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [name]);
+            return <i data-lucide={name} aria-hidden="true" className={className} style={{ width: size, height: size }}></i>;
+        };
+
+        const SECTIONS = [
+            { id: 'projects', title: 'Projects' },
+            { id: 'certificates', title: 'Certificates' },
+            { id: 'tech_stack', title: 'Tech stack' },
+        ];
+
+        const rowTitle = (collection, row) => row.title || row.name || 'Untitled';
+        const rowSub = (collection, row) => {
+            if (collection === 'projects') return (row.tech || []).join(', ');
+            if (collection === 'certificates') return `${row.issuer || ''} · ${row.date || ''}`;
+            return row.icon || '';
+        };
+        const deleteNoun = (collection) => collection === 'tech_stack' ? 'tech' : collection.slice(0, -1);
+
+        // --- Delete dialog: always confirm destructive actions ---
+        const DeleteDialog = ({ target, busy, error, onCancel, onConfirm }) => {
+            const cancelRef = useRef(null);
+            const lastFocus = useRef(null);
+            useEffect(() => {
+                lastFocus.current = document.activeElement;
+                if (cancelRef.current) cancelRef.current.focus();
+                const onKey = (e) => { if (e.key === 'Escape' && !busy) onCancel(); };
+                window.addEventListener('keydown', onKey);
+                return () => {
+                    window.removeEventListener('keydown', onKey);
+                    if (lastFocus.current && lastFocus.current.focus) lastFocus.current.focus();
+                };
+            }, []);
+            if (!target) return null;
+            const noun = deleteNoun(target.collection);
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={`Delete ${noun}`} style={{ overscrollBehavior: 'contain' }}>
+                    <div className="absolute inset-0 bg-black/80" onClick={() => { if (!busy) onCancel(); }}></div>
+                    <div className="relative bg-neutral-900 border border-white/10 rounded-lg max-w-md w-full p-6">
+                        <h3 className="text-lg font-heading font-bold text-white mb-2">Delete {noun}?</h3>
+                        <p className="text-neutral-400 text-sm mb-1">“{rowTitle(target.collection, target.row)}” will be removed everywhere.</p>
+                        <p className="text-neutral-500 text-xs font-mono mb-6">This can&apos;t be undone.</p>
+                        {error ? <p aria-live="polite" className="text-red-300 text-sm mb-4">{error}</p> : null}
+                        <div className="flex justify-end gap-3">
+                            <button ref={cancelRef} onClick={onCancel} disabled={busy} className="px-4 py-2 rounded border border-white/20 text-sm hover:border-white/50 disabled:opacity-50">Cancel</button>
+                            <button onClick={onConfirm} disabled={busy} className="px-4 py-2 rounded bg-red-500 text-white text-sm font-bold hover:bg-red-400 disabled:opacity-50">{busy ? 'Deleting…' : `Delete ${noun}`}</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const LoginForm = ({ configured, onDone }) => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [busy, setBusy] = useState(false);
+            const [error, setError] = useState(null);
+            const [resetSent, setResetSent] = useState(false);
+
+            const submit = (e) => {
+                e.preventDefault();
+                setError(null);
+                setBusy(true);
+                PortfolioStore.client().then((sb) =>
+                    sb.auth.signInWithPassword({ email: email.trim(), password })
+                ).then(({ error }) => {
+                    setBusy(false);
+                    if (error) {
+                        setError("Couldn't sign in. Check your email and password, then try again.");
+                        return;
+                    }
+                    onDone();
+                }).catch(() => {
+                    setBusy(false);
+                    setError("Couldn't sign in. Check your connection and try again.");
+                });
+            };
+
+            const reset = () => {
+                if (!email.trim()) {
+                    setError("Type your email first, then choose forgot password.");
+                    return;
+                }
+                PortfolioStore.client().then((sb) =>
+                    sb.auth.resetPasswordForEmail(email.trim())
+                ).then(() => setResetSent(true))
+                 .catch(() => setError("Couldn't send the reset link. Check your connection and try again."));
+            };
+
+            return (
+                <form onSubmit={submit} className="max-w-sm mx-auto bg-white/5 border border-white/10 rounded-lg p-8 space-y-4">
+                    <h2 className="font-heading font-bold text-xl text-white">Log in</h2>
+                    {!configured ? <p className="text-neutral-400 text-sm">Backend isn&apos;t configured. Add <span className="font-mono">config.local.js</span> to manage content.</p> : null}
+                    {error ? <p aria-live="polite" className="text-red-300 text-sm">{error}</p> : null}
+                    {resetSent ? <p aria-live="polite" className="text-cyan-300 text-sm">If the address exists, a reset link is on its way.</p> : null}
+                    <div className="space-y-1">
+                        <label htmlFor="admin-email" className="text-xs font-mono text-neutral-400">EMAIL</label>
+                        <input id="admin-email" type="email" required autoComplete="username" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} disabled={!configured || busy} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white disabled:opacity-50" placeholder="admin@example.com" />
+                    </div>
+                    <div className="space-y-1">
+                        <label htmlFor="admin-password" className="text-xs font-mono text-neutral-400">PASSWORD</label>
+                        <input id="admin-password" type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={!configured || busy} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white disabled:opacity-50" placeholder="••••••••" />
+                    </div>
+                    <button type="submit" disabled={!configured || busy} className="w-full py-3 bg-cyan-400 text-void font-bold rounded hover:bg-cyan-300 disabled:opacity-50">{busy ? 'Logging in…' : 'Log in'}</button>
+                    <button type="button" onClick={reset} disabled={!configured || busy} className="w-full text-center text-xs font-mono text-neutral-400 hover:text-cyan-400 disabled:opacity-50">Forgot password?</button>
+                </form>
+            );
+        };
+
+        const Row = ({ collection, row, onEdit, onDelete }) => (
+            <li className="flex items-center gap-4 p-3 bg-white/5 border border-white/5 rounded hover:border-white/15">
+                {collection === 'tech_stack' ? (
+                    <span className="w-12 h-12 shrink-0 rounded bg-neutral-800 flex items-center justify-center overflow-hidden"><i className={`${row.icon} colored text-2xl`}></i></span>
+                ) : (
+                    <span className="w-12 h-12 shrink-0 rounded bg-neutral-800 overflow-hidden flex items-center justify-center">
+                        {row.image ? <img src={row.image} alt="" loading="lazy" className="w-full h-full object-cover" /> : <Icon name="image" size={20} className="text-neutral-600" />}
+                    </span>
+                )}
+                <span className="flex-1 min-w-0">
+                    <span className="block text-white text-sm font-bold truncate">{rowTitle(collection, row)}</span>
+                    <span className="block text-neutral-500 text-xs font-mono truncate">{rowSub(collection, row)}</span>
+                </span>
+                <button onClick={() => onEdit(collection, row)} aria-label={`Edit ${rowTitle(collection, row)}`} className="px-3 py-1.5 text-xs font-mono border border-white/15 rounded hover:border-cyan-400 hover:text-cyan-400">Edit</button>
+                <button onClick={() => onDelete(collection, row)} aria-label={`Delete ${rowTitle(collection, row)}`} className="px-3 py-1.5 text-xs font-mono border border-red-500/40 text-red-300 rounded hover:bg-red-500 hover:text-white">Delete</button>
+            </li>
+        );
+
+        const AdminApp = () => {
+            const [authState, setAuthState] = useState('checking');
+            const [configured, setConfigured] = useState(false);
+            const [lists, setLists] = useState({ projects: [], certificates: [], tech_stack: [] });
+            const [source, setSource] = useState('seed');
+            const [notice, setNotice] = useState(null);
+            const [deleteTarget, setDeleteTarget] = useState(null);
+            const [deleteBusy, setDeleteBusy] = useState(false);
+            const [deleteError, setDeleteError] = useState(null);
+            const [pendingEdit, setPendingEdit] = useState(null);
+
+            useEffect(() => {
+                let off = null;
+                PortfolioStore.client().then((sb) => {
+                    setConfigured(!!sb);
+                    if (!sb) {
+                        setAuthState('no-backend');
+                        return;
+                    }
+                    sb.auth.getSession().then(({ data }) => {
+                        setAuthState(data.session ? 'signed-in' : 'signed-out');
+                    });
+                    off = sb.auth.onAuthStateChange((_event, session) => {
+                        setAuthState(session ? 'signed-in' : 'signed-out');
+                    }).data.subscription;
+                });
+                return () => { if (off) off.unsubscribe(); };
+            }, []);
+
+            const load = () => {
+                Promise.all([
+                    PortfolioStore.list('projects'),
+                    PortfolioStore.list('certificates'),
+                    PortfolioStore.list('tech_stack')
+                ]).then(([p, c, t]) => {
+                    setLists({ projects: p.data, certificates: c.data, tech_stack: t.data });
+                    setSource(p.source === 'live' && c.source === 'live' && t.source === 'live' ? 'live' : 'seed');
+                }).catch(() => setNotice("Couldn't load content. Check your connection and try again."));
+            };
+
+            useEffect(() => {
+                if (authState !== 'signed-in') return;
+                load();
+                const offs = ['projects', 'certificates', 'tech_stack'].map((col) =>
+                    PortfolioStore.subscribe(col, load)
+                );
+                return () => offs.forEach((off) => off());
+            }, [authState]);
+
+            const logout = () => {
+                PortfolioStore.client().then((sb) => sb.auth.signOut());
+            };
+
+            const confirmDelete = () => {
+                if (!deleteTarget) return;
+                setDeleteBusy(true);
+                setDeleteError(null);
+                PortfolioStore.remove(deleteTarget.collection, deleteTarget.row.id).then(() => {
+                    setNotice(`${deleteNoun(deleteTarget.collection)[0].toUpperCase() + deleteNoun(deleteTarget.collection).slice(1)} deleted.`);
+                    setDeleteTarget(null);
+                    load();
+                }).catch((e) => {
+                    if (e && e.code === 'denied') setDeleteError("Couldn't delete. Your session expired. Log in again.");
+                    else setDeleteError("Couldn't delete. Check your connection and try again.");
+                }).finally(() => setDeleteBusy(false));
+            };
+
+            return (
+                <div className="min-h-screen max-w-4xl mx-auto px-6 py-10">
+                    <header className="flex items-center justify-between mb-10">
+                        <div>
+                            <p className="font-mono text-xs text-cyan-400 tracking-widest uppercase">Portfolio console</p>
+                            <h1 className="font-heading font-bold text-3xl text-white">Admin</h1>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <a href="index.html" className="text-xs font-mono text-neutral-400 hover:text-cyan-400">View site</a>
+                            {authState === 'signed-in' ? <button onClick={logout} className="px-4 py-2 text-sm border border-white/20 rounded hover:border-cyan-400 hover:text-cyan-400">Log out</button> : null}
+                        </div>
+                    </header>
+
+                    {notice ? <p aria-live="polite" className="text-cyan-300 text-sm font-mono mb-6">{notice}</p> : null}
+
+                    {authState === 'checking' ? <p className="text-neutral-400 font-mono text-sm">Checking session…</p> : null}
+                    {authState === 'no-backend' || authState === 'signed-out' ? <LoginForm configured={configured} onDone={() => setAuthState('signed-in')} /> : null}
+
+                    {authState === 'signed-in' ? (
+                        <main className="space-y-10">
+                            {SECTIONS.map((sec) => (
+                                <section key={sec.id} aria-label={sec.title}>
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <h2 className="font-heading font-bold text-xl text-white">{sec.title}</h2>
+                                        <span className="font-mono text-[10px] px-2 py-0.5 rounded border border-cyan-500/30 text-cyan-300">{source === 'live' ? 'Live' : 'Cached'}</span>
+                                        <span className="font-mono text-xs text-neutral-500">{lists[sec.id].length}</span>
+                                    </div>
+                                    {lists[sec.id].length === 0 ? (
+                                        <p className="text-neutral-500 text-sm font-mono border border-dashed border-white/10 rounded p-6 text-center">Nothing here yet. Add your first {sec.title.toLowerCase()} with the edit form.</p>
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {lists[sec.id].map((row) => (
+                                                <Row key={row.id} collection={sec.id} row={row}
+                                                    onEdit={(c, r) => setPendingEdit({ collection: c, row: r })}
+                                                    onDelete={(c, r) => { setDeleteError(null); setDeleteTarget({ collection: c, row: r }); }} />
+                                            ))}
+                                        </ul>
+                                    )}
+                                </section>
+                            ))}
+                            {pendingEdit ? (
+                                <p aria-live="polite" className="text-neutral-400 text-sm font-mono border border-white/10 rounded p-4">
+                                    Editing “{rowTitle(pendingEdit.collection, pendingEdit.row)}” isn&apos;t here yet. It ships with the next update. <button onClick={() => setPendingEdit(null)} className="text-cyan-400 hover:underline">Dismiss</button>
+                                </p>
+                            ) : null}
+                        </main>
+                    ) : null}
+
+                    <DeleteDialog target={deleteTarget} busy={deleteBusy} error={deleteError}
+                        onCancel={() => { if (!deleteBusy) setDeleteTarget(null); }} onConfirm={confirmDelete} />
+
+                    <footer className="mt-16 pt-6 border-t border-white/10">
+                        <p className="text-neutral-600 text-xs font-mono">The anon key is public by design; row-level security is the real access control. Never paste a service_role key here.</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('admin-root'));
+        root.render(<AdminApp />);
+    </script>
+</body>
+</html>
