@@ -143,7 +143,7 @@
             return (
                 <form onSubmit={submit} className="max-w-sm mx-auto bg-white/5 border border-white/10 rounded-lg p-8 space-y-4">
                     <h2 className="font-heading font-bold text-xl text-white">Log in</h2>
-                    {!configured ? <p className="text-neutral-400 text-sm">Backend isn&apos;t configured. Add <span className="font-mono">config.local.js</span> to manage content.</p> : null}
+                    {!configured ? <p className="text-neutral-400 text-sm">Backend isn&apos;t connected. The site can&apos;t reach Supabase — on this deployment, make sure the latest code (with the production backend config) is deployed.</p> : null}
                     {error ? <p aria-live="polite" className="text-red-300 text-sm">{error}</p> : null}
                     {resetSent ? <p aria-live="polite" className="text-cyan-300 text-sm">If the address exists, a reset link is on its way.</p> : null}
                     <div className="space-y-1">
