@@ -1,2 +1,6 @@
 # Local-only docs
 docs/
+
+# Agent tooling scratch (local environment, not part of the site)
+.agents/
+skills-lock.json
