@@ -163,9 +163,12 @@
     <script src="js/locale.js"></script>
     <script src="js/content.js"></script>
     <script src="js/matcher.js"></script>
+    <script src="config.local.js" onerror="/* seed mode: no local backend config */"></script>
+    <script src="js/config.js"></script>
+    <script src="js/store.js"></script>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
         // --- ICONS WRAPPER ---
         const Icon = ({ name, size = 20, className }) => {
@@ -472,6 +475,8 @@
 
             // Answered by the Matcher Module (js/matcher.js).
 
+            // NOTE (honest scope): the Matcher reads the static knowledgeBase only.
+            // Live project titles from the backend are intentionally out of scope here.
             const handleSend = (txt) => {
                 const text = txt || input;
                 if (!text.trim()) return;
@@ -577,10 +582,108 @@
             );
         };
 
+        // --- Showcase data hook (data deps live here, UI deps stay in the view) ---
+        const useShowcaseData = () => {
+            const [state, setState] = useState(() => ({ status: 'loading', source: 'seed', projects: [], certificates: [], tech: [] }));
+
+            const loadRef = useRef(null);
+            if (!loadRef.current) {
+                loadRef.current = () => {
+                    setState((s) => ({ ...s, status: 'loading' }));
+                    Promise.all([
+                        PortfolioStore.list('projects'),
+                        PortfolioStore.list('certificates'),
+                        PortfolioStore.list('tech_stack')
+                    ]).then(([projects, certificates, tech]) => {
+                        const live = projects.source === 'live' && certificates.source === 'live' && tech.source === 'live';
+                        setState({ status: 'ready', source: live ? 'live' : 'seed', projects: projects.data, certificates: certificates.data, tech: tech.data });
+                    }).catch(() => {
+                        setState((s) => ({ ...s, status: 'error' }));
+                    });
+                };
+            }
+
+            useEffect(() => {
+                loadRef.current();
+                const offs = ['projects', 'certificates', 'tech_stack'].map((c) =>
+                    PortfolioStore.subscribe(c, () => loadRef.current())
+                );
+                return () => offs.forEach((off) => off());
+            }, []);
+
+            return { projects: state.projects, certificates: state.certificates, tech: state.tech, status: state.status, source: state.source, reload: loadRef.current };
+        };
+
+        const ProjectCard = ({ project }) => {
+            const [imgOk, setImgOk] = useState(true);
+            return (
+                <div className="group relative bg-glass border border-white/10 rounded-2xl overflow-hidden hover:border-cyan-400/50 hover:shadow-neon-strong transition-all duration-500 hover:-translate-y-2 flex flex-col h-full">
+                    <div className="h-52 overflow-hidden relative">
+                        <div className="absolute inset-0 bg-neutral-900/40 group-hover:bg-transparent transition-all z-10 duration-500"></div>
+                        {imgOk ? (
+                            <img src={project.image} alt={project.title} loading="lazy" decoding="async" onError={() => setImgOk(false)} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+                        ) : (
+                            <div className="w-full h-full bg-neutral-800 flex items-center justify-center" role="img" aria-label={project.title}><Icon name="folder-open" size={32} className="text-neutral-600" /></div>
+                        )}
+                    </div>
+                    <div className="p-8 flex flex-col flex-1">
+                        <div className="mb-4">
+                            <h3 className="text-2xl font-heading font-bold text-white group-hover:text-cyan-400 transition-colors mb-1">{project.title}</h3>
+                            <p className="text-xs font-mono text-cyan-400 tracking-wider uppercase">{project.tagline}</p>
+                        </div>
+                        <p className="text-sm text-neutral-300 mb-6 leading-relaxed flex-1">{project.description}</p>
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="flex flex-wrap gap-2">
+                                {(project.tech || []).map(tag => <span key={tag} className="text-[10px] font-bold font-mono px-3 py-1 rounded-full bg-cyan-900/20 border border-cyan-500/20 text-cyan-300">{tag}</span>)}
+                            </div>
+                            {project.githubLink ? (
+                                <a href={project.githubLink} target="_blank" rel="noopener noreferrer" aria-label={`Open ${project.title} on GitHub`} className="text-neutral-400 hover:text-white transition-colors">
+                                    <Icon name="github" size={20} />
+                                </a>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CertCard = ({ cert, onOpen }) => {
+            const [imgOk, setImgOk] = useState(true);
+            return (
+                <div onClick={() => onOpen(cert)} className="group relative cursor-pointer rounded-xl overflow-hidden border border-white/10 bg-neutral-900 aspect-[4/3] hover:shadow-neon hover:border-cyan-400 transition-all duration-300">
+                    {imgOk ? (
+                        <img src={cert.image} alt={cert.title} loading="lazy" decoding="async" onError={() => setImgOk(false)} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                    ) : (
+                        <div className="w-full h-full bg-neutral-800 flex items-center justify-center" role="img" aria-label={cert.title}><Icon name="award" size={32} className="text-neutral-600" /></div>
+                    )}
+                    <div className="absolute inset-0 cert-overlay flex flex-col justify-end p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                            <h4 className="font-bold text-white text-lg leading-tight mb-1">{cert.title}</h4>
+                            <div className="flex justify-between items-center text-xs font-mono text-cyan-400">
+                                <span>{cert.issuer}</span><span className="bg-cyan-900/50 px-2 py-1 rounded text-white flex gap-1 items-center"><Icon name="eye" size={12} /> View</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const TechGrid = ({ items }) => (
+            <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-8 animate-fade-up px-4">
+                {items.map((tech) => (
+                    <div key={tech.name || tech.id} className="bg-glass border border-white/10 p-6 rounded-2xl flex flex-col items-center justify-center gap-4 hover:border-cyan-400 hover:bg-white/10 transition-all duration-300 hover:-translate-y-2 group cursor-default">
+                        <i className={`${tech.icon} colored text-6xl group-hover:scale-110 transition-transform duration-300 filter grayscale group-hover:grayscale-0 opacity-70 group-hover:opacity-100`}></i>
+                        <span className="font-mono text-xs text-neutral-500 group-hover:text-white transition-colors">{tech.name}</span>
+                    </div>
+                ))}
+            </div>
+        );
+
         const PortfolioShowcase = ({ t }) => {
             const [activeTab, setActiveTab] = useState('projects');
             const [modalOpen, setModalOpen] = useState(false);
             const [selectedCert, setSelectedCert] = useState(null);
+            const { projects, certificates, tech, status, source, reload } = useShowcaseData();
 
             const tabs = [
                 { id: 'projects', label: t.portfolio.tabs[0], icon: 'folder-open' },
@@ -588,6 +691,43 @@
                 { id: 'stack', label: t.portfolio.tabs[2], icon: 'cpu' },
             ];
             const openCert = (cert) => { setSelectedCert(cert); setModalOpen(true); };
+
+            const tabBody = useMemo(() => {
+                if (status === 'loading' && projects.length === 0 && certificates.length === 0 && tech.length === 0) {
+                    return (
+                        <div aria-live="polite" className="grid md:grid-cols-3 gap-8 animate-pulse">
+                            <p className="text-neutral-400 font-mono text-sm md:col-span-3 text-center">Loading projects…</p>
+                            {[0, 1, 2].map((i) => <div key={i} className="h-64 rounded-2xl bg-white/5 border border-white/10"></div>)}
+                        </div>
+                    );
+                }
+                if (activeTab === 'projects') {
+                    if (projects.length === 0) return <p className="text-neutral-400 text-center font-mono">No projects yet. Check back soon.</p>;
+                    return (
+                        <div className="grid md:grid-cols-3 gap-8 animate-fade-up">
+                            {projects.map(project => <ProjectCard key={project.id} project={project} />)}
+                        </div>
+                    );
+                }
+                if (activeTab === 'certificates') {
+                    return (
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 animate-fade-up">
+                            {certificates.length === 0 ? (
+                                <p className="text-neutral-400 text-center font-mono md:col-span-2 lg:col-span-4">No certificates yet. Check back soon.</p>
+                            ) : certificates.map(cert => <CertCard key={cert.id} cert={cert} onOpen={openCert} />)}
+                            <div className="rounded-xl border border-dashed border-white/10 bg-white/5 flex flex-col items-center justify-center p-6 aspect-[4/3] text-center hover:border-cyan-400/50 transition-colors group cursor-default">
+                                <div className="w-12 h-12 rounded-full bg-cyan-900/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                    <Icon name="plus" className="text-cyan-400" />
+                                </div>
+                                <h4 className="font-heading font-bold text-white text-lg group-hover:text-cyan-400 transition-colors">{t.portfolio.more}</h4>
+                                <p className="text-xs font-mono text-neutral-500 mt-2">{t.portfolio.moreSub}</p>
+                            </div>
+                        </div>
+                    );
+                }
+                if (tech.length === 0) return <p className="text-neutral-400 text-center font-mono">No tech stack yet. Check back soon.</p>;
+                return <TechGrid items={tech} />;
+            }, [activeTab, status, projects, certificates, tech, t]);
 
             return (
                 <section id="showcase" className="py-24 relative z-10">
@@ -597,6 +737,12 @@
                             <h2 className="text-5xl font-heading font-bold mb-4 text-white drop-shadow-lg">{t.portfolio.title}</h2>
                             <p className="text-neutral-400 max-w-2xl mx-auto">{t.portfolio.subtitle}</p>
                         </div>
+                        {source === 'seed' && status === 'ready' ? (
+                            <p className="text-center font-mono text-xs text-neutral-500 mb-8">Showing cached content… <button onClick={reload} className="text-cyan-400 hover:underline">Try again</button></p>
+                        ) : null}
+                        {status === 'error' ? (
+                            <p aria-live="polite" className="text-center font-mono text-sm text-red-300 mb-8">Couldn&apos;t load the showcase. Check your connection and try again. <button onClick={reload} className="text-cyan-400 hover:underline">Try again</button></p>
+                        ) : null}
                         <div className="flex justify-center mb-16">
                             <div className="bg-white/5 p-1.5 rounded-2xl flex backdrop-blur-md border border-white/10 shadow-xl">
                                 {tabs.map(tab => (
@@ -607,71 +753,7 @@
                             </div>
                         </div>
                         <div className="min-h-[400px]">
-                            {activeTab === 'projects' && (
-                                <div className="grid md:grid-cols-3 gap-8 animate-fade-up">
-                                    {projectsData.map(project => (
-                                        <div key={project.id} className="group relative bg-glass border border-white/10 rounded-2xl overflow-hidden hover:border-cyan-400/50 hover:shadow-neon-strong transition-all duration-500 hover:-translate-y-2 flex flex-col h-full">
-                                            <div className="h-52 overflow-hidden relative">
-                                                <div className="absolute inset-0 bg-neutral-900/40 group-hover:bg-transparent transition-all z-10 duration-500"></div>
-                                                <img src={project.image} alt={project.title} loading="lazy" decoding="async" className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
-                                            </div>
-                                            <div className="p-8 flex flex-col flex-1">
-                                                <div className="mb-4">
-                                                    <h3 className="text-2xl font-heading font-bold text-white group-hover:text-cyan-400 transition-colors mb-1">{project.title}</h3>
-                                                    <p className="text-xs font-mono text-cyan-400 tracking-wider uppercase">{project.tagline}</p>
-                                                </div>
-                                                <p className="text-sm text-neutral-300 mb-6 leading-relaxed flex-1">{project.description}</p>
-                                                
-                                                {/* Adjusted Github Layout and Links */}
-                                                <div className="flex justify-between items-center mb-6">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {project.tech.map(t => <span key={t} className="text-[10px] font-bold font-mono px-3 py-1 rounded-full bg-cyan-900/20 border border-cyan-500/20 text-cyan-300">{t}</span>)}
-                                                    </div>
-                                                    <a href={project.githubLink} target="_blank" rel="noopener noreferrer" className="text-neutral-400 hover:text-white transition-colors">
-                                                        <Icon name="github" size={20} />
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            {activeTab === 'certificates' && (
-                                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 animate-fade-up">
-                                    {certificatesData.map(cert => (
-                                        <div key={cert.id} onClick={() => openCert(cert)} className="group relative cursor-pointer rounded-xl overflow-hidden border border-white/10 bg-neutral-900 aspect-[4/3] hover:shadow-neon hover:border-cyan-400 transition-all duration-300">
-                                            <img src={cert.image} alt={cert.title} loading="lazy" decoding="async" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
-                                            <div className="absolute inset-0 cert-overlay flex flex-col justify-end p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                                    <h4 className="font-bold text-white text-lg leading-tight mb-1">{cert.title}</h4>
-                                                    <div className="flex justify-between items-center text-xs font-mono text-cyan-400">
-                                                        <span>{cert.issuer}</span><span className="bg-cyan-900/50 px-2 py-1 rounded text-white flex gap-1 items-center"><Icon name="eye" size={12} /> View</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    
-                                    {/* More to Come Placeholder */}
-                                    <div className="rounded-xl border border-dashed border-white/10 bg-white/5 flex flex-col items-center justify-center p-6 aspect-[4/3] text-center hover:border-cyan-400/50 transition-colors group cursor-default">
-                                        <div className="w-12 h-12 rounded-full bg-cyan-900/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                            <Icon name="plus" className="text-cyan-400" />
-                                        </div>
-                                        <h4 className="font-heading font-bold text-white text-lg group-hover:text-cyan-400 transition-colors">{t.portfolio.more}</h4>
-                                        <p className="text-xs font-mono text-neutral-500 mt-2">{t.portfolio.moreSub}</p>
-                                    </div>
-                                </div>
-                            )}
-                            {activeTab === 'stack' && (
-                                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-8 animate-fade-up px-4">
-                                    {techStackData.map((tech, idx) => (
-                                        <div key={idx} className="bg-glass border border-white/10 p-6 rounded-2xl flex flex-col items-center justify-center gap-4 hover:border-cyan-400 hover:bg-white/10 transition-all duration-300 hover:-translate-y-2 group cursor-default">
-                                            <i className={`${tech.icon} colored text-6xl group-hover:scale-110 transition-transform duration-300 filter grayscale group-hover:grayscale-0 opacity-70 group-hover:opacity-100`}></i>
-                                            <span className="font-mono text-xs text-neutral-500 group-hover:text-white transition-colors">{tech.name}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            {tabBody}
                         </div>
                     </div>
                 </section>
