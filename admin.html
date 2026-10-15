@@ -103,6 +103,40 @@
             );
         };
 
+        // --- Edit dialog: the add/edit form opens as a modal so it is
+        // visible and focused wherever the Edit button was (web-design
+        // guidelines: modal needs Esc, focus return, overscroll contain).
+        const EditDialog = ({ Form, initial, noun, isEdit, busy, serverError, onCancel, onSubmit }) => {
+            const lastFocus = useRef(null);
+            const busyRef = useRef(busy);
+            busyRef.current = busy;
+            useEffect(() => {
+                lastFocus.current = document.activeElement;
+                const t = setTimeout(() => {
+                    const el = document.querySelector('#pf-title, #cf-title, #tf-name');
+                    if (el) el.focus();
+                }, 60);
+                const onKey = (e) => { if (e.key === 'Escape' && !busyRef.current) onCancel(); };
+                window.addEventListener('keydown', onKey);
+                const prev = document.body.style.overflow;
+                document.body.style.overflow = 'hidden';
+                return () => {
+                    clearTimeout(t);
+                    window.removeEventListener('keydown', onKey);
+                    document.body.style.overflow = prev;
+                    if (lastFocus.current && lastFocus.current.focus) lastFocus.current.focus();
+                };
+            }, []);
+            return (
+                <div className="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true" aria-label={`${isEdit ? 'Edit' : 'Add'} ${noun}`} style={{ overscrollBehavior: 'contain' }}>
+                    <div className="fixed inset-0 bg-black/80" onClick={() => { if (!busyRef.current) onCancel(); }}></div>
+                    <div className="relative max-w-2xl mx-auto my-6 md:my-10">
+                        <Form initial={initial} busy={busy} serverError={serverError} onCancel={onCancel} onSubmit={onSubmit} />
+                    </div>
+                </div>
+            );
+        };
+
         const LoginForm = ({ configured, onDone }) => {
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
@@ -486,6 +520,7 @@
             const [formBusy, setFormBusy] = useState(false);
             const [formError, setFormError] = useState(null);
             const [messages, setMessages] = useState([]);
+            const formRef = useRef(null);
 
             useEffect(() => {
                 let off = null;
@@ -532,6 +567,14 @@
                     setNotice(failed.length ? `Couldn't load ${failed.join(', ')}. Check your connection and try again.` : null);
                 });
             };
+
+            useEffect(() => {
+                if (editing && formRef.current) {
+                    formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    const first = formRef.current.querySelector('input, textarea, select');
+                    if (first) first.focus({ preventScroll: true });
+                }
+            }, [editing]);
 
             useEffect(() => {
                 if (authState !== 'signed-in') return;
@@ -623,6 +666,16 @@
                                         <span className="font-mono text-xs text-neutral-500">{lists[sec.id].length}</span>
                                         <button onClick={() => { setFormError(null); setEditing({ collection: sec.id, row: null }); }} className="ml-auto px-3 py-1.5 text-xs font-mono border border-white/15 rounded hover:border-cyan-400 hover:text-cyan-400">{sec.id === 'projects' ? 'Add project' : sec.id === 'certificates' ? 'Add certificate' : 'Add tech'}</button>
                                     </div>
+                                    {editing && editing.collection === sec.id ? (
+                                        <div ref={formRef} className="admin-form-wrap mb-4">
+                                            {(() => {
+                                                const Form = FormFor(editing.collection);
+                                                return <Form key={(editing.row && editing.row.id) || 'new'} initial={editing.row || {}} busy={formBusy} serverError={formError}
+                                                    onCancel={() => { if (!formBusy) setEditing(null); }}
+                                                    onSubmit={(values, fileInfo) => saveForm(editing.collection, editing.row, values, fileInfo)} />;
+                                            })()}
+                                        </div>
+                                    ) : null}
                                     {lists[sec.id].length === 0 ? (
                                         <p className="text-neutral-500 text-sm font-mono border border-dashed border-white/10 rounded p-6 text-center">Nothing here yet. Add your first {sec.title.toLowerCase()} with the edit form.</p>
                                     ) : (
@@ -636,12 +689,6 @@
                                     )}
                                 </section>
                             ))}
-                            {editing ? (() => {
-                                const Form = FormFor(editing.collection);
-                                return <Form initial={editing.row || {}} busy={formBusy} serverError={formError}
-                                    onCancel={() => { if (!formBusy) setEditing(null); }}
-                                    onSubmit={(values, fileInfo) => saveForm(editing.collection, editing.row, values, fileInfo)} />;
-                            })() : null}
                             <InboxSection items={messages}
                                 onToggleRead={toggleRead}
                                 onDelete={(m) => { setDeleteError(null); setDeleteTarget({ collection: 'messages', row: m }); }} />

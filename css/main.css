@@ -84,7 +84,8 @@ body {
 /* Anchor targets clear the fixed navbar */
 main section[id],
 #main,
-#admin-main {
+#admin-main,
+.admin-form-wrap {
     scroll-margin-top: 80px;
 }
 
