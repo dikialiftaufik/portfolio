@@ -505,17 +505,32 @@
                 return () => { if (off) off.unsubscribe(); };
             }, []);
 
+            const LOAD_COLS = ['projects', 'certificates', 'tech_stack', 'messages'];
             const load = () => {
-                Promise.all([
-                    PortfolioStore.list('projects'),
-                    PortfolioStore.list('certificates'),
-                    PortfolioStore.list('tech_stack'),
-                    PortfolioStore.list('messages')
-                ]).then(([p, c, t, m]) => {
-                    setLists({ projects: p.data, certificates: c.data, tech_stack: t.data });
-                    setMessages(m.data.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
-                    setSource(p.source === 'live' && c.source === 'live' && t.source === 'live' ? 'live' : 'seed');
-                }).catch(() => setNotice("Couldn't load content. Check your connection and try again."));
+                // One failing section must not blank the rest: settle each
+                // collection independently and name what failed (ux-writing:
+                // error states what failed + the fix, never just the problem).
+                Promise.allSettled(LOAD_COLS.map((col) => PortfolioStore.list(col))).then((results) => {
+                    const got = {};
+                    const failed = [];
+                    results.forEach((r, i) => {
+                        if (r.status === 'fulfilled') got[LOAD_COLS[i]] = r.value;
+                        else failed.push(LOAD_COLS[i]);
+                    });
+                    if (got.projects || got.certificates || got.tech_stack) {
+                        setLists((prev) => ({
+                            projects: got.projects ? got.projects.data : prev.projects,
+                            certificates: got.certificates ? got.certificates.data : prev.certificates,
+                            tech_stack: got.tech_stack ? got.tech_stack.data : prev.tech_stack,
+                        }));
+                    }
+                    if (got.messages) setMessages(got.messages.data.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+                    if (got.projects || got.certificates || got.tech_stack || got.messages) {
+                        const live = ['projects', 'certificates', 'tech_stack'].every((k) => got[k] && got[k].source === 'live');
+                        setSource(live ? 'live' : 'seed');
+                    }
+                    setNotice(failed.length ? `Couldn't load ${failed.join(', ')}. Check your connection and try again.` : null);
+                });
             };
 
             useEffect(() => {

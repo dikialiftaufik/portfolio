@@ -82,11 +82,13 @@ function supabaseClient() {
 const SupabaseAdapter = {
     async list(collection) {
         const sb = await supabaseClient();
-        const { data, error } = await sb
-            .from(collection)
-            .select('*')
-            .order('sort_order', { ascending: true })
-            .order('created_at', { ascending: true });
+        // messages has no sort_order column: newest first. Content tables
+        // keep their Showcase order (sort_order, then oldest first).
+        let query = sb.from(collection).select('*');
+        query = collection === 'messages'
+            ? query.order('created_at', { ascending: false })
+            : query.order('sort_order', { ascending: true }).order('created_at', { ascending: true });
+        const { data, error } = await query;
         if (error) throw classify(error);
         return data.map((r) => fromRow(collection, r));
     },
