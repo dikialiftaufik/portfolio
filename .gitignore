@@ -1,5 +1,7 @@
-# Local-only docs
-docs/
+# Local-only docs (ADRs are versioned)
+docs/*
+!docs/adr/
+!docs/adr/**
 
 # Agent tooling scratch (local environment, not part of the site)
 .agents/
