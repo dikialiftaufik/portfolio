@@ -6,3 +6,6 @@ docs/*
 # Agent tooling scratch (local environment, not part of the site)
 .agents/
 skills-lock.json
+
+# Supabase credentials (local only — example is committed instead)
+config.local.js
