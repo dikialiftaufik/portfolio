@@ -10,6 +10,6 @@ Domain and architecture terms used in this portfolio. Architecture words follow 
 - **Inbox** — visitor messages sent from the contact form, read and managed in the admin console.
 - **Viewer** — anyone opening the public portfolio page.
 - **Admin** — the portfolio owner, signed in to the admin console.
-- **Store** — the live-data Module both views read through.
+- **Store** — the live-data Module both views read through. Interface: `list/subscribe/create/update/remove/sendMessage` in `js/store.js`; Supabase and Seed are its Adapters.
 - **Adapter** — the backend behind the Store in a given situation (live backend or frozen seed).
 - **Seed** — the frozen fallback data used when the backend is unreachable or unconfigured.

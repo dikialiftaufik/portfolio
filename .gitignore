@@ -1,7 +1,8 @@
-# Local-only docs (ADRs are versioned)
+# Local-only docs (ADRs and E2E proof are versioned)
 docs/*
 !docs/adr/
 !docs/adr/**
+!docs/E2E-BACKEND.md
 
 # Agent tooling scratch (local environment, not part of the site)
 .agents/
