@@ -27,8 +27,10 @@
                     loc: "LOCATION",
                     msg: "MESSAGE",
                     btn: "Send Message",
-                    sending: "Opening your email app...",
-                    sent: "Message Sent!"
+                    sending: "Sending…",
+                    opening: "Opening your email app…",
+                    sent: "Message sent. I usually respond within 24 hours.",
+                    throttle: "Please wait a moment before sending again."
                 },
                 footer: {
                     quote: "Building the future, one line at a time.",
@@ -62,8 +64,10 @@
                     loc: "LOKASI",
                     msg: "PESAN",
                     btn: "Kirim Pesan",
-                    sending: "Membuka aplikasi email...",
-                    sent: "Pesan Terkirim!"
+                    sending: "Mengirim…",
+                    opening: "Membuka aplikasi email…",
+                    sent: "Pesan terkirim. Saya biasanya merespons dalam 24 jam.",
+                    throttle: "Tunggu sebentar sebelum mengirim lagi."
                 },
                 footer: {
                     quote: "Membangun masa depan, satu baris kode setiap waktu.",

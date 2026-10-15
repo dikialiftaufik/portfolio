@@ -203,7 +203,7 @@
 
             useEffect(() => {
                 const handleScroll = () => setScrolled(window.scrollY > 50);
-                window.addEventListener('scroll', handleScroll);
+                window.addEventListener('scroll', handleScroll, { passive: true });
                 return () => window.removeEventListener('scroll', handleScroll);
             }, []);
 
@@ -402,7 +402,7 @@
 
                 const onMouseMove = (e) => { mouse.x = e.x; mouse.y = e.y; };
                 window.addEventListener('resize', onResize);
-                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mousemove', onMouseMove, { passive: true });
                 resize();
                 animate();
 
@@ -548,7 +548,7 @@
                                 <input 
                                     id="chat-input" aria-label="Ask about Diki"
                                     type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} 
-                                    placeholder="Type a command..." className="flex-1 bg-transparent border-none outline-none font-mono text-sm text-white placeholder-neutral-600"
+                                    placeholder="Type a command…" className="flex-1 bg-transparent border-none outline-none font-mono text-sm text-white placeholder-neutral-600"
                                 />
                                 <button onClick={() => handleSend()} aria-label="Send message" className="text-cyan-400"><Icon name="send" size={18} /></button>
                             </div>
@@ -761,24 +761,41 @@
         };
 
         const Contact = ({ t }) => {
-            const [form, setForm] = useState({ name: '', email: '', message: '' });
+            const [form, setForm] = useState({ name: '', email: '', message: '', company: '' });
             const [status, setStatus] = useState(null);
+            const [error, setError] = useState(null);
+            const lastSent = useRef(0);
+
+            const openMailto = (f) => {
+                const subject = `Portfolio Contact from ${f.name}`;
+                const body = `Name: ${f.name}\nEmail: ${f.email}\n\nMessage:\n${f.message}`;
+                window.location.href = `mailto:dikialif550@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            };
 
             const handleSubmit = (e) => {
                 e.preventDefault();
-                // Validasi data sudah ditangani oleh atribut required pada input
-                // Membuka email client pengguna dengan data yang sudah terisi.
-                // Tidak ada pengiriman server-side: jangan klaim sukses, data form dipertahankan.
+                setError(null);
+                if (form.company) return; // honeypot: bots pass silently, nothing happens
+                if (Date.now() - lastSent.current < 30000) {
+                    setStatus('error');
+                    setError(t.contact.throttle);
+                    return;
+                }
                 setStatus('sending');
-
-                const subject = `Portfolio Contact from ${form.name}`;
-                const body = `Name: ${form.name}\nEmail: ${form.email}\n\nMessage:\n${form.message}`;
-
-                window.location.href = `mailto:dikialif550@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-                setTimeout(() => {
-                    setStatus(null);
-                }, 3000);
+                PortfolioStore.sendMessage({ name: form.name, email: form.email, message: form.message }).then(() => {
+                    lastSent.current = Date.now();
+                    setStatus('sent');
+                    setForm({ name: '', email: '', message: '', company: '' });
+                }).catch((err) => {
+                    if (err && err.code === 'not-configured') {
+                        openMailto(form); // backend off: honest mailto path, data kept
+                        setStatus('mailto');
+                        setTimeout(() => setStatus(null), 3000);
+                    } else {
+                        setStatus('error'); // offline/validation: message kept, never cleared
+                        setError(err && err.message ? err.message : "Couldn't send. Check your connection and try again.");
+                    }
+                });
             };
 
             return (
@@ -808,11 +825,14 @@
                             </div>
                         </div>
                         <form onSubmit={handleSubmit} className="space-y-6 bg-glass p-8 rounded-lg border border-white/10">    <div className="grid md:grid-cols-2 gap-6">
-                                <div className="space-y-2"><label htmlFor="contact-name" className="text-xs font-mono text-neutral-400">{t.contact.name}</label><input id="contact-name" type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="John Doe" /></div>
-                                <div className="space-y-2"><label htmlFor="contact-email" className="text-xs font-mono text-neutral-400">{t.contact.email}</label><input id="contact-email" type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="john@example.com" /></div>
+                                <div className="space-y-2"><label htmlFor="contact-name" className="text-xs font-mono text-neutral-400">{t.contact.name}</label><input id="contact-name" type="text" autoComplete="name" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="John Doe" /></div>
+                                <div className="space-y-2"><label htmlFor="contact-email" className="text-xs font-mono text-neutral-400">{t.contact.email}</label><input id="contact-email" type="email" autoComplete="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="john@example.com" /></div>
                             </div>
-                            <div className="space-y-2"><label htmlFor="contact-message" className="text-xs font-mono text-neutral-400">{t.contact.msg}</label><textarea id="contact-message" rows="4" required value={form.message} onChange={e => setForm({...form, message: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="Tell me about your thoughts..."></textarea></div>
-                            <button type="submit" aria-live="polite" className="w-full py-4 bg-cyan-400 text-void font-bold rounded-sm hover:shadow-neon transition-all hover:bg-cyan-500 flex justify-center items-center gap-2">{status === 'sending' ? t.contact.sending : t.contact.btn} <Icon name="arrow-right" size={18} /></button>
+                            <div className="space-y-2"><label htmlFor="contact-message" className="text-xs font-mono text-neutral-400">{t.contact.msg}</label><textarea id="contact-message" rows="4" required value={form.message} onChange={e => setForm({...form, message: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="Tell me about your thoughts…"></textarea></div>
+                            <div aria-hidden="true" className="absolute w-px h-px overflow-hidden opacity-0"><input type="text" name="company" tabIndex="-1" autoComplete="off" value={form.company} onChange={e => setForm({...form, company: e.target.value})} /></div>
+                            <button type="submit" disabled={status === 'sending'} aria-live="polite" className="w-full py-4 bg-cyan-400 text-void font-bold rounded-sm hover:shadow-neon transition-all hover:bg-cyan-500 disabled:opacity-70 flex justify-center items-center gap-2">{status === 'sending' ? t.contact.sending : status === 'mailto' ? t.contact.opening : t.contact.btn} <Icon name="arrow-right" size={18} /></button>
+                            {status === 'sent' ? <p aria-live="polite" className="text-cyan-300 text-sm">{t.contact.sent}</p> : null}
+                            {status === 'error' && error ? <p aria-live="polite" className="text-red-300 text-sm">{error}</p> : null}
                         </form>
                     </div>
                 </section>
@@ -841,12 +861,15 @@
 
             return (
                 <div className="min-h-screen text-titanium relative">
+                    <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-[200] focus:bg-cyan-400 focus:text-void focus:px-4 focus:py-2 focus:font-mono focus:text-sm">Skip to content</a>
                     <GlobalBackground />
                     <Navbar lang={lang} setLang={setLang} t={t} />
-                    <Hero t={t} />
-                    <Chatbot t={t} />
-                    <PortfolioShowcase t={t} />
-                    <Contact t={t} />
+                    <main id="main">
+                        <Hero t={t} />
+                        <Chatbot t={t} />
+                        <PortfolioShowcase t={t} />
+                        <Contact t={t} />
+                    </main>
                     <Footer t={t} />
                 </div>
             );

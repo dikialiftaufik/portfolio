@@ -81,6 +81,24 @@ body {
     }
 }
 
+/* Anchor targets clear the fixed navbar */
+main section[id],
+#main,
+#admin-main {
+    scroll-margin-top: 80px;
+}
+
+/* Visible keyboard focus on links and buttons (inputs keep their own rings) */
+a:focus-visible,
+button:focus-visible {
+    outline: 2px solid #00F0FF;
+    outline-offset: 2px;
+}
+
+button {
+    touch-action: manipulation;
+}
+
 /* --- Admin console (admin.html only) --- */
 .admin-console {
     scroll-behavior: smooth;

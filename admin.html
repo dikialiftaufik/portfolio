@@ -580,6 +580,7 @@
 
             return (
                 <div className="admin-console min-h-screen max-w-4xl mx-auto px-6 py-10">
+                    <a href="#admin-main" className="sr-only focus:not-sr-only focus:absolute focus:z-[200] focus:bg-cyan-400 focus:text-void focus:px-4 focus:py-2 focus:font-mono focus:text-sm">Skip to content</a>
                     <header className="flex items-center justify-between mb-10">
                         <div>
                             <p className="font-mono text-xs text-cyan-400 tracking-widest uppercase">Portfolio console</p>
@@ -597,7 +598,7 @@
                     {authState === 'no-backend' || authState === 'signed-out' ? <LoginForm configured={configured} onDone={() => setAuthState('signed-in')} /> : null}
 
                     {authState === 'signed-in' ? (
-                        <main className="space-y-10">
+                        <main id="admin-main" className="space-y-10">
                             {SECTIONS.map((sec) => (
                                 <section key={sec.id} aria-label={sec.title}>
                                     <div className="flex items-center gap-3 mb-4">
