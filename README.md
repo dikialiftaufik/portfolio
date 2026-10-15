@@ -86,3 +86,9 @@ Details: `assets/README.md`.
 Any static host (GitHub Pages, Netlify, Vercel). No server, no env vars.
 Pinned CDN versions are in the `<head>` of both pages. `admin.html` carries
 `noindex, nofollow`.
+
+Production backend on deploys comes from the committed
+`config.production.js` (anon key, public by design); local development
+overrides it with git-ignored `config.local.js`. Full Vercel walkthrough
+(setup, verification, daily workflow, troubleshooting, key rotation):
+`docs/DEPLOY-VERCEL.md`.

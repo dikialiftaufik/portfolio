@@ -1,8 +1,9 @@
-# Local-only docs (ADRs and E2E proof are versioned)
+# Local-only docs (ADRs, E2E proof, and deploy guide are versioned)
 docs/*
 !docs/adr/
 !docs/adr/**
 !docs/E2E-BACKEND.md
+!docs/DEPLOY-VERCEL.md
 
 # Agent tooling scratch (local environment, not part of the site)
 .agents/
