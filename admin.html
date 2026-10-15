@@ -103,40 +103,6 @@
             );
         };
 
-        // --- Edit dialog: the add/edit form opens as a modal so it is
-        // visible and focused wherever the Edit button was (web-design
-        // guidelines: modal needs Esc, focus return, overscroll contain).
-        const EditDialog = ({ Form, initial, noun, isEdit, busy, serverError, onCancel, onSubmit }) => {
-            const lastFocus = useRef(null);
-            const busyRef = useRef(busy);
-            busyRef.current = busy;
-            useEffect(() => {
-                lastFocus.current = document.activeElement;
-                const t = setTimeout(() => {
-                    const el = document.querySelector('#pf-title, #cf-title, #tf-name');
-                    if (el) el.focus();
-                }, 60);
-                const onKey = (e) => { if (e.key === 'Escape' && !busyRef.current) onCancel(); };
-                window.addEventListener('keydown', onKey);
-                const prev = document.body.style.overflow;
-                document.body.style.overflow = 'hidden';
-                return () => {
-                    clearTimeout(t);
-                    window.removeEventListener('keydown', onKey);
-                    document.body.style.overflow = prev;
-                    if (lastFocus.current && lastFocus.current.focus) lastFocus.current.focus();
-                };
-            }, []);
-            return (
-                <div className="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true" aria-label={`${isEdit ? 'Edit' : 'Add'} ${noun}`} style={{ overscrollBehavior: 'contain' }}>
-                    <div className="fixed inset-0 bg-black/80" onClick={() => { if (!busyRef.current) onCancel(); }}></div>
-                    <div className="relative max-w-2xl mx-auto my-6 md:my-10">
-                        <Form initial={initial} busy={busy} serverError={serverError} onCancel={onCancel} onSubmit={onSubmit} />
-                    </div>
-                </div>
-            );
-        };
-
         const LoginForm = ({ configured, onDone }) => {
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
