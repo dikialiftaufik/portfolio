@@ -3,25 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diki Alif Taufik</title>
+    <title>Diki Alif Taufik — Software Engineer</title>
+    <meta name="description" content="Portfolio of Diki Alif Taufik, Software Engineer based in Bandung. Projects, certifications, tech stack, and contact.">
+    <meta name="theme-color" content="#050b14">
+    <meta property="og:title" content="Diki Alif Taufik — Software Engineer">
+    <meta property="og:description" content="Building scalable solutions and leveraging AI to solve real-world problems.">
+    <meta property="og:type" content="website">
     
-    <link rel="icon" type="image/png" href="new fix.png">
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+
+    <!-- Pinned versions only. SRI omitted — these vendors don't publish static hashes. -->
+    <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
     
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="css/main.css">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.469.0"></script>
 
-    <link rel="stylesheet" type='text/css' href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" />
+    <link rel="stylesheet" type='text/css' href="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/devicon.min.css" />
 
     <script>
         tailwind.config = {
@@ -154,6 +160,10 @@
 <body class="bg-void text-titanium font-sans antialiased overflow-x-hidden selection:bg-cyan-400 selection:text-void relative">
     <div id="root"></div>
 
+    <script src="js/locale.js"></script>
+    <script src="js/content.js"></script>
+    <script src="js/matcher.js"></script>
+
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
@@ -162,7 +172,7 @@
             useEffect(() => {
                 if (window.lucide) window.lucide.createIcons();
             }, [name]);
-            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+            return <i data-lucide={name} aria-hidden="true" className={className} style={{ width: size, height: size }}></i>;
         };
 
         // --- GLOBAL AMBIENT BACKGROUND (Modified for Deep Space) ---
@@ -176,230 +186,11 @@
             </div>
         );
 
-        // --- DATA ---
-        const translations = {
-            en: {
-                nav: ['Home', 'About', 'Portfolio', 'Contact'],
-                hero: {
-                    greeting: "Hello World,",
-                    im: "I'm ", 
-                    pitch: "Software Engineer", 
-                    subPitch: "Building scalable solutions and leveraging AI to solve real-world problems.",
-                    btnPrimary: "Explore Portfolio",
-                    btnSecondary: "Let's Connect"
-                },
-                about: { title: "Get to Know Me Better", subtitle: "Ask me anything through this AI-powered chatbot" },
-                portfolio: {
-                    title: "Portfolio Showcase",
-                    subtitle: "Explore my journey through complex projects, certifications, and my technical arsenal.",
-                    tabs: ['Projects', 'Certificates', 'Tech Stack'],
-                    more: "More to Come",
-                    moreSub: "Continuously learning and upskilling."
-                },
-                contact: {
-                    title: "Let's Build Something",
-                    titleHigh: "Together.",
-                    desc: "Open for collaborations, freelance projects and internships. I usually respond within 24 hours.",
-                    name: "NAME",
-                    email: "EMAIL",
-                    loc: "LOCATION",
-                    msg: "MESSAGE",
-                    btn: "Send Message",
-                    sending: "Sending...",
-                    sent: "Message Sent!"
-                },
-                footer: {
-                    quote: "Building the future, one line at a time.",
-                    rights: "Built with React + Tailwind."
-                }
-            },
-            id: {
-                nav: ['Beranda', 'Tentang', 'Portofolio', 'Kontak'],
-                hero: {
-                    greeting: "Halo Dunia,",
-                    im: "Saya, ",
-                    pitch: "Software Engineer",
-                    subPitch: "Membangun solusi berskala besar dan memanfaatkan AI untuk masalah nyata.",
-                    btnPrimary: "Lihat Portofolio",
-                    btnSecondary: "Mari Terhubung"
-                },
-                about: { title: "Kenali Saya Lebih Dekat", subtitle: "Tanyakan apa saja melalui chatbot bertenaga AI ini" },
-                portfolio: {
-                    title: "Pameran Portofolio",
-                    subtitle: "Jelajahi perjalanan saya melalui proyek kompleks, sertifikasi, dan kemampuan teknis.",
-                    tabs: ['Proyek', 'Sertifikat', 'Teknologi'],
-                    more: "Akan Datang",
-                    moreSub: "Terus belajar dan meningkatkan keahlian."
-                },
-                contact: {
-                    title: "Mari Membangun Sesuatu",
-                    titleHigh: "Bersama.",
-                    desc: "Terbuka untuk kolaborasi, proyek freelance, dan magang. Saya biasanya merespons dalam 24 jam.",
-                    email: "EMAIL",
-                    loc: "LOKASI",
-                    msg: "PESAN",
-                    btn: "Kirim Pesan",
-                    sending: "Mengirim...",
-                    sent: "Pesan Terkirim!"
-                },
-                footer: {
-                    quote: "Membangun masa depan, satu baris kode setiap waktu.",
-                    rights: "Dibuat dengan React + Tailwind."
-                }
-            }
-        };
+        // --- DATA lives in js/locale.js (translations) + js/content.js (showcase data) ---
 
-        const projectsData = [
-  { 
-    id: 1, 
-    title: "BOLOOO", 
-    tagline: "Platform berbasis Website Pemesanan Makanan dan Reservasi Tempat", 
-    description: "Developed collaboratively by a team of three for a university final project, this web application was built following comprehensive user research including interviews, questionnaires, and journey mapping, and features a secure database architecture that implements password hashing and SQL injection prevention.", 
-    tech: ["HTML", "PHP", "CSS", "JavaScript"], 
-    image: "Screenshot 2025-11-26 122833.png",
-    githubLink: "https://github.com/dikialiftaufik/tubes-webpro" 
-  },
-  { 
-    id: 2, 
-    title: "The Komar's", 
-    tagline: "Platform berbasis Website untuk Manajemen Pesanan dan Reservasi Restoran", 
-    description: "Developed as a collaborative final project for Web Application Development, this system facilitates comprehensive restaurant management including menu ordering and table reservation. The application utilizes a robust relational database architecture with Laravel and MySQL to ensure data integrity and efficient transaction processing for daily operations.",
-    tech: ["Laravel", "MySQL", "Bootstrap"], 
-    image: "the komar's.png", 
-    githubLink: "https://github.com/dikialiftaufik/tubes-pabw"
-  },
-  { 
-    id: 3, 
-    title: "PPDB Online", 
-    tagline: "Platform berbasis Website Penerimaan Peserta Didik Baru", 
-    description: "Developed individually as a final project for my vocational high school competency exam, this online student admission system utilizes Laravel, Bootstrap and MySQL to streamline the registration process and allows administrators to manage and verify applicant data efficiently.", 
-    tech: ["Laravel", "Bootstrap", "MySQL"], 
-    image: "Screenshot (273).png",
-    githubLink: "https://github.com/diki130704/ppdb-online"
-  },
-];
-
-        const certificatesData = [
-  { 
-    id: 1, 
-    title: "InnovAItion: AI Skilling for Young Workers", 
-    issuer: "Plan International", 
-    date: "Oct 2025", 
-    image: "Certificate_of_Completion-1_page-0001.jpg" 
-  },
-  { 
-    id: 2, 
-    title: "Electives AI Training", 
-    issuer: "Generation Girl", 
-    date: "Dec 2025", 
-    image: "Certificate_of_Completion-1_page-0002.png" 
-  },
-  { 
-    id: 3, 
-    title: "Java (Basic)", 
-    issuer: "HackerRank", 
-    date: "Jan 2026", 
-    image: "sertifikat java basic.png" 
-  },
-  { 
-    id: 4, 
-    title: "UX Design Introduction Job Simulation", 
-    issuer: "Lloyds Banking Group", 
-    date: "Jan 2026", 
-    image: "sertifikat uxd intro.png" 
-  },
-  { 
-    id: 5, 
-    title: "UX Design Advanced Job Simulation", 
-    issuer: "Lloyds Banking Group", 
-    date: "Jan 2026", 
-    image: "sertifikat uxd advanced.png" 
-  },
-  { 
-    id: 6, 
-    title: "Java Programming for Beginners", 
-    issuer: "Simplilearn", 
-    date: "Jan 2026", 
-    image: "sertifikat java begginers.png" 
-  },
-  { 
-    id: 7, 
-    title: "EPrT (English Proficiency Test)", 
-    issuer: "Lac", 
-    date: "Oct 2024", 
-    image: "e-certificate EPrT_Diki Alif Taufik-1_page-0001.jpg" 
-  },
-];
-
-        const techStackData = [
-            { name: "HTML5", icon: "devicon-html5-plain" },
-            { name: "CSS3", icon: "devicon-css3-plain" },
-            { name: "JavaScript", icon: "devicon-javascript-plain" },
-            { name: "Bootstrap", icon: "devicon-bootstrap-plain" },
-            { name: "Tailwind", icon: "devicon-tailwindcss-original" },
-            { name: "Java", icon: "devicon-java-plain" },
-            { name: "PHP", icon: "devicon-php-plain" },
-            { name: "Python", icon: "devicon-python-plain" },
-            { name: "Laravel", icon: "devicon-laravel-original" },
-            { name: "React", icon: "devicon-react-original" },
-            { name: "MySQL", icon: "devicon-mysql-plain" },
-            { name: "Oracle", icon: "devicon-oracle-original" },
-            { name: "MongoDB", icon: "devicon-mongodb-plain" },
-            { name: "Flutter", icon: "devicon-flutter-plain" },
-            { name: "Google Colab", icon: "devicon-googlecolab-plain" },
-            { name: "GitHub", icon: "devicon-github-original" },
-            { name: "WordPress", icon: "devicon-wordpress-plain" },
-            { name: "Figma", icon: "devicon-figma-plain" }
-        ];
 
         // --- EXTENDED KNOWLEDGE BASE (30+ Questions) ---
-        const knowledgeBase = [
-            // Greetings
-            { keywords: ["hi", "hello", "halo", "hey", "greetings", "selamat", "morning", "afternoon", "evening"], answer: "Hello! I'm Diki's virtual assistant. Ready to answer your questions!" },
-            { keywords: ["who are you", "what are you", "bot"], answer: "I am a React-based chatbot designed to showcase Diki's portfolio. I run on logic and a bit of magic." },
-        
-            // Personal Basics
-            { keywords: ["name", "who is diki", "full name"], answer: "My name is Diki Alif Taufik." },
-            { keywords: ["old", "age", "birthday", "born"], answer: "I'm currently in my 20s, always leveling up my skills." },
-            { keywords: ["from", "live", "location", "country", "where", "stay", "address", "city"], answer: "I am based in Bandung, Indonesia, but I work effectively with global teams remotely." },
-            
-            // Professional / Work
-            { keywords: ["job", "hire", "work", "available", "opportunity", "open to work", "freelance"], answer: "I'm open to projects if my schedule allows. Let's discuss your needs and see if I can help!" },
-            { keywords: ["intern"], answer: "Yes, I am looking for internship opportunities to apply my skills in the real world." },
-            { keywords: ["remote"], answer: "Remote work is perfect for me as it fits around my university schedule." },
-            { keywords: ["cv", "resume", "curriculum vitae", "download"], answer: "You can download my CV by clicking the 'Download CV' button in the navigation bar." },
-            { keywords: ["contact", "email", "reach", "phone", "whatsapp"], answer: "Reach me at dikialif550@gmail.com." },
-            { keywords: ["rate", "salary", "price", "cost"], answer: "My rates are competitive and depend on project scope. Let's discuss via email." },
-            { keywords: ["experience", "years", "background"], answer: "I have experience in Full Stack Web Development, working on various projects from e-commerce to school admission." },
-
-            // Tech & Skills
-            { keywords: ["skill", "stack", "technology", "tech", "program", "code"], answer: "I specialize in React, Next.js, Node.js, Python, TensorFlow, and Tailwind CSS." },
-            { keywords: ["language"], answer: "I speak Indonesian (Native), English (Professional), and I write JavaScript & Python." },
-            { keywords: ["os", "operating system", "linux", "windows", "mac"], answer: "I prefer Unix-based environments. Linux/Mac is my sweet spot for development." },
-            { keywords: ["editor", "ide", "vscode", "vim"], answer: "VS Code is my daily driver. It's versatile and powerful." },
-            
-            // Favorites
-            { keywords: ["color", "colour"], answer: "Cyan (#00F0FF) is my favorite. It represents the future and technology." },
-            { keywords: ["quote", "motto", "philosophy", "QOTD"], answer: "\"The only way to do great work is to love what you do.\" - Steve Jobs." },
-            { keywords: ["hobby", "interest", "free time"], answer: "I enjoy football match and exploring new tech." },
-            { keywords: ["movie", "film", "cinema"], answer: "Interstellar and The Matrix. I love mind-bending sci-fi." },
-            { keywords: ["music", "song", "listen", "band"], answer: "Lo-Fi beats and Synthwave help me focus while coding." },
-            { keywords: ["series", "tv", "show", "netflix"], answer: "Mr. Robot and Silicon Valley are top tier for devs!" },
-            { keywords: ["sport", "club", "team", "football"], answer: "Persib Bandung, without a doubt. I've supported them since I was a kid." },
-            { keywords: ["food", "eat", "meal"], answer: "My absolute favorite is blood clam. Nothing beats them with a spicy sauce!" },
-            { keywords: ["coffee", "tea", "drink"], answer: "Coffee. Definitely coffee. It converts caffeine into code." },
-            
-            // Personality & Random
-            { keywords: ["joke", "funny", "laugh"], answer: "Why do programmers prefer dark mode? Because light attracts bugs!" },
-            { keywords: ["secret", "hidden"], answer: "There is no secret. Just hard work and a lot of Googling." },
-            { keywords: ["education", "degree", "university", "study", "school"], answer: "I'm currently pursuing a Diploma in Information Systems at Telkom University, Bandung. I expect to graduate on time in 2027." },
-            { keywords: ["strength", "good at"], answer: "I learn fast and adapt quickly to new technologies." },
-            { keywords: ["weakness", "bad at"], answer: "I often spend extra time making sure the interface looks absolutely flawless." },
-            { keywords: ["goal", "future", "dream"], answer: "My goal is to build impactful software that solves real human problems." },
-            { keywords: ["dark mode", "theme"], answer: "Dark mode all the way. It's better for the eyes." },
-            { keywords: ["personality", "MBTI", "mbti"], answer: "I'm an ISTJ 5w4. In simple terms: I am highly organized and logical (ISTJ), but I also love analyzing complex problems deeply (5w4)." },
-            { keywords: ["why hire", "why you"], answer: "I don't just write code; I build solutions. I care about user experience and scalable architecture." }
-        ];
+        // --- Knowledge base lives in js/matcher.js ---
 
         // --- COMPONENTS ---
 
@@ -449,10 +240,30 @@
                                 Download CV
                             </a>
                         </div>
-                        <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                        <button className="md:hidden text-white" aria-label="Menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                             <Icon name={mobileMenuOpen ? "x" : "menu"} />
                         </button>
                     </div>
+                    {mobileMenuOpen && (
+                        <div data-testid="mobile-menu" className="md:hidden bg-void/95 backdrop-blur-md border-t border-white/10 px-6 py-4 flex flex-col gap-4 font-mono text-sm">
+                            {t.nav.map((item, idx) => {
+                                const sectionIds = ['home', 'about', 'showcase', 'contact'];
+                                return (
+                                    <button key={idx} onClick={() => scrollTo(sectionIds[idx])} className="text-left py-2 hover:text-cyan-400 transition-colors">
+                                        {item}
+                                    </button>
+                                )
+                            })}
+                            <div className="flex gap-2 pt-2">
+                                <button onClick={() => setLang('en')} className={`flag-btn p-1 ${lang === 'en' ? 'active' : ''}`} title="English">
+                                    <img src="https://flagcdn.com/w40/gb.png" alt="UK" className="w-6 h-4 object-cover rounded-[2px]" />
+                                </button>
+                                <button onClick={() => setLang('id')} className={`flag-btn p-1 ${lang === 'id' ? 'active' : ''}`} title="Indonesia">
+                                    <img src="https://flagcdn.com/w40/id.png" alt="ID" className="w-6 h-4 object-cover rounded-[2px]" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </nav>
             );
         };
@@ -499,6 +310,13 @@
                     canvas.width = window.innerWidth;
                     canvas.height = window.innerHeight;
                     initParticles();
+                };
+
+                // Debounced resize: re-init particles at most once per 150ms
+                let resizeTimer = null;
+                const onResize = () => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(resize, 150);
                 };
 
                 class Particle {
@@ -548,7 +366,9 @@
 
                 function initParticles() {
                     particles = [];
-                    let numberOfParticles = (canvas.width * canvas.height) / 15000;
+                    // Cap density on small screens: O(n^2) link pass stays cheap on mobile
+                    const divisor = window.innerWidth < 768 ? 30000 : 15000;
+                    let numberOfParticles = (canvas.width * canvas.height) / divisor;
                     for (let i = 0; i < numberOfParticles; i++) {
                         particles.push(new Particle());
                     }
@@ -577,13 +397,15 @@
                     animationFrameId = requestAnimationFrame(animate);
                 }
 
-                window.addEventListener('resize', resize);
-                window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+                const onMouseMove = (e) => { mouse.x = e.x; mouse.y = e.y; };
+                window.addEventListener('resize', onResize);
+                window.addEventListener('mousemove', onMouseMove);
                 resize();
                 animate();
 
                 return () => {
-                    window.removeEventListener('resize', resize);
+                    window.removeEventListener('resize', onResize);
+                    window.removeEventListener('mousemove', onMouseMove);
                     cancelAnimationFrame(animationFrameId);
                 };
             }, []);
@@ -648,34 +470,7 @@
                 chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
             }, [messages, isTyping]);
 
-            const findAnswer = (query) => {
-                const lowerQuery = query.toLowerCase();
-                
-                // Indonesian Language Detection
-                // Check for common Indonesian words or particles
-                const indoKeywords = [
-                    "apa", "siapa", "dimana", "kapan", "kenapa", "bagaimana", "yang", "dan", "di", 
-                    "saya", "kamu", "bisa", "tolong", "terima", "kasih", "adalah", "tentang", 
-                    "seperti", "dari", "halo", "hai", "selamat", "tidak", "ya", "punya"
-                ];
-
-                // Check if any word in the query matches the Indonesian keywords using regex word boundary for accuracy
-                const isIndo = indoKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`, 'i').test(lowerQuery));
-
-                if (isIndo) {
-                    return "saat ini saya hanya tersedia dalam bahasa inggris";
-                }
-
-                // Search in Knowledge Base
-                for (let entry of knowledgeBase) {
-                    if (entry.keywords.some(keyword => lowerQuery.includes(keyword))) {
-                        return entry.answer;
-                    }
-                }
-
-                // Smart Fallback
-                return "That’s an interesting question! I haven't programmed an answer for that one yet.";
-            };
+            // Answered by the Matcher Module (js/matcher.js).
 
             const handleSend = (txt) => {
                 const text = txt || input;
@@ -734,7 +529,7 @@
                                         </div>
                                     </div>
                                 ))}
-                                {isTyping && <div className="text-neutral-500 animate-pulse">Typing...</div>}
+                                {isTyping && <div className="text-neutral-500 animate-pulse" aria-live="polite">Typing...</div>}
                                 <div ref={chatEndRef}></div>
                             </div>
                             <div className="p-3 bg-neutral-900/50 flex gap-2 overflow-x-auto border-t border-white/5 no-scrollbar">
@@ -746,10 +541,11 @@
                             </div>
                             <div className="p-4 bg-neutral-900 border-t border-white/10 flex gap-2">
                                 <input 
+                                    id="chat-input" aria-label="Ask about Diki"
                                     type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSend()} 
                                     placeholder="Type a command..." className="flex-1 bg-transparent border-none outline-none font-mono text-sm text-white placeholder-neutral-600"
                                 />
-                                <button onClick={() => handleSend()} className="text-cyan-400"><Icon name="send" size={18} /></button>
+                                <button onClick={() => handleSend()} aria-label="Send message" className="text-cyan-400"><Icon name="send" size={18} /></button>
                             </div>
                         </div>
                     </div>
@@ -758,17 +554,23 @@
         };
 
         const CertModal = ({ isOpen, onClose, cert }) => {
+            useEffect(() => {
+                if (!isOpen) return;
+                const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+                window.addEventListener('keydown', onKey);
+                return () => window.removeEventListener('keydown', onKey);
+            }, [isOpen, onClose]);
             if (!isOpen || !cert) return null;
             return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={cert.title}>
                     <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose}></div>
                     <div className="relative bg-neutral-900 border border-white/10 p-2 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col animate-fade-up shadow-2xl">
                         <div className="flex justify-between items-center p-4 border-b border-white/10">
                             <div><h3 className="text-xl font-bold text-white">{cert.title}</h3><p className="text-cyan-400 text-sm font-mono">{cert.issuer}</p></div>
-                            <button onClick={onClose} className="text-neutral-400 hover:text-white"><Icon name="x" size={24} /></button>
+                            <button onClick={onClose} aria-label="Close certificate view" className="text-neutral-400 hover:text-white"><Icon name="x" size={24} /></button>
                         </div>
                         <div className="flex-1 overflow-hidden p-4 flex items-center justify-center bg-black">
-                            <img src={cert.image} alt={cert.title} className="max-w-full max-h-[70vh] object-contain rounded" />
+                            <img src={cert.image} alt={cert.title} loading="lazy" decoding="async" className="max-w-full max-h-[70vh] object-contain rounded" />
                         </div>
                     </div>
                 </div>
@@ -811,7 +613,7 @@
                                         <div key={project.id} className="group relative bg-glass border border-white/10 rounded-2xl overflow-hidden hover:border-cyan-400/50 hover:shadow-neon-strong transition-all duration-500 hover:-translate-y-2 flex flex-col h-full">
                                             <div className="h-52 overflow-hidden relative">
                                                 <div className="absolute inset-0 bg-neutral-900/40 group-hover:bg-transparent transition-all z-10 duration-500"></div>
-                                                <img src={project.image} alt={project.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+                                                <img src={project.image} alt={project.title} loading="lazy" decoding="async" className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
                                             </div>
                                             <div className="p-8 flex flex-col flex-1">
                                                 <div className="mb-4">
@@ -838,7 +640,7 @@
                                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 animate-fade-up">
                                     {certificatesData.map(cert => (
                                         <div key={cert.id} onClick={() => openCert(cert)} className="group relative cursor-pointer rounded-xl overflow-hidden border border-white/10 bg-neutral-900 aspect-[4/3] hover:shadow-neon hover:border-cyan-400 transition-all duration-300">
-                                            <img src={cert.image} alt={cert.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
+                                            <img src={cert.image} alt={cert.title} loading="lazy" decoding="async" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" />
                                             <div className="absolute inset-0 cert-overlay flex flex-col justify-end p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                                 <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                                                     <h4 className="font-bold text-white text-lg leading-tight mb-1">{cert.title}</h4>
@@ -883,21 +685,18 @@
             const handleSubmit = (e) => {
                 e.preventDefault();
                 // Validasi data sudah ditangani oleh atribut required pada input
-                // Mengirim email menggunakan mailto protocol (Client-side)
+                // Membuka email client pengguna dengan data yang sudah terisi.
+                // Tidak ada pengiriman server-side: jangan klaim sukses, data form dipertahankan.
                 setStatus('sending');
-                
+
                 const subject = `Portfolio Contact from ${form.name}`;
                 const body = `Name: ${form.name}\nEmail: ${form.email}\n\nMessage:\n${form.message}`;
-                
-                // Membuka email client pengguna dengan data yang sudah terisi
+
                 window.location.href = `mailto:dikialif550@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-                // Reset UI seolah-olah terkirim
                 setTimeout(() => {
-                    setStatus('success');
-                    setForm({ name: '', email: '', message: '' });
-                    setTimeout(() => setStatus(null), 3000);
-                }, 1000);
+                    setStatus(null);
+                }, 3000);
             };
 
             return (
@@ -927,11 +726,11 @@
                             </div>
                         </div>
                         <form onSubmit={handleSubmit} className="space-y-6 bg-glass p-8 rounded-lg border border-white/10">    <div className="grid md:grid-cols-2 gap-6">
-                                <div className="space-y-2"><label className="text-xs font-mono text-neutral-400">{t.contact.name}</label><input type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="John Doe" /></div>
-                                <div className="space-y-2"><label className="text-xs font-mono text-neutral-400">{t.contact.email}</label><input type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="john@example.com" /></div>
+                                <div className="space-y-2"><label htmlFor="contact-name" className="text-xs font-mono text-neutral-400">{t.contact.name}</label><input id="contact-name" type="text" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="John Doe" /></div>
+                                <div className="space-y-2"><label htmlFor="contact-email" className="text-xs font-mono text-neutral-400">{t.contact.email}</label><input id="contact-email" type="email" required value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="john@example.com" /></div>
                             </div>
-                            <div className="space-y-2"><label className="text-xs font-mono text-neutral-400">{t.contact.msg}</label><textarea rows="4" required value={form.message} onChange={e => setForm({...form, message: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="Tell me about your thoughts..."></textarea></div>
-                            <button type="submit" className="w-full py-4 bg-cyan-400 text-void font-bold rounded-sm hover:shadow-neon transition-all hover:bg-cyan-500 flex justify-center items-center gap-2">{status === 'sending' ? t.contact.sending : status === 'success' ? t.contact.sent : t.contact.btn} <Icon name="arrow-right" size={18} /></button>
+                            <div className="space-y-2"><label htmlFor="contact-message" className="text-xs font-mono text-neutral-400">{t.contact.msg}</label><textarea id="contact-message" rows="4" required value={form.message} onChange={e => setForm({...form, message: e.target.value})} className="w-full bg-neutral-900 border border-white/10 rounded p-3 text-white focus:border-cyan-400 focus:outline-none focus:shadow-neon transition-all" placeholder="Tell me about your thoughts..."></textarea></div>
+                            <button type="submit" aria-live="polite" className="w-full py-4 bg-cyan-400 text-void font-bold rounded-sm hover:shadow-neon transition-all hover:bg-cyan-500 flex justify-center items-center gap-2">{status === 'sending' ? t.contact.sending : t.contact.btn} <Icon name="arrow-right" size={18} /></button>
                         </form>
                     </div>
                 </section>
@@ -956,6 +755,7 @@
             const t = translations[lang];
 
             useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, []);
+            useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
             return (
                 <div className="min-h-screen text-titanium relative">

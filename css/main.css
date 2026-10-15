@@ -1,0 +1,82 @@
+/* main.css — responsive layer. Utilities live in Tailwind classes;
+   this file only holds what utilities can't express. Zero overrides. */
+
+/* Base: prevent accidental horizontal scroll (body already has overflow-x-hidden utility as backup) */
+html,
+body {
+    overflow-x: hidden;
+    width: 100%;
+}
+
+/* --- Tablet and below --- */
+@media (max-width: 1024px) {
+    nav .max-w-7xl {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+
+    /* About: stack copy above chatbot */
+    #about .grid {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    /* Chatbot height follows viewport instead of fixed 500px */
+    #about .glass-panel {
+        height: 60vh;
+        min-height: 450px;
+        max-height: 600px;
+    }
+
+    #about .overflow-x-auto {
+        padding-bottom: 5px;
+    }
+}
+
+/* --- Phone --- */
+@media (max-width: 768px) {
+    /* Keep hero clear of the fixed navbar */
+    #home {
+        padding-top: 60px;
+    }
+
+    /* Typing line wraps instead of clipping */
+    #home .h-12 {
+        height: auto;
+        min-height: 3rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Full-width tap targets on stacked hero buttons */
+    #home .flex-col button {
+        width: 100%;
+    }
+
+    /* Tab bar scrolls horizontally instead of squeezing */
+    #showcase .flex.justify-center > div {
+        width: 100%;
+        overflow-x: auto;
+        justify-content: flex-start;
+    }
+
+    /* Contact: form first, info below */
+    #contact .grid {
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 3rem;
+    }
+
+    #contact h2 {
+        text-align: center;
+    }
+
+    #contact form {
+        padding: 1.5rem;
+    }
+
+    footer .text-right {
+        text-align: center;
+    }
+}
