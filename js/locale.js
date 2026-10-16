@@ -5,7 +5,7 @@
                 hero: {
                     greeting: "Hello World,",
                     im: "I'm ", 
-                    pitch: "Software Engineer", 
+                    pitch: "Web Developer & AI Enthusiast", 
                     subPitch: "Building scalable solutions and leveraging AI to solve real-world problems.",
                     btnPrimary: "Explore Portfolio",
                     btnSecondary: "Let's Connect"
@@ -42,7 +42,7 @@
                 hero: {
                     greeting: "Halo Dunia,",
                     im: "Saya ",
-                    pitch: "Software Engineer",
+                    pitch: "Web Developer & AI Enthusiast",
                     subPitch: "Membangun solusi berskala besar dan memanfaatkan AI untuk masalah nyata.",
                     btnPrimary: "Lihat Portofolio",
                     btnSecondary: "Mari Terhubung"
