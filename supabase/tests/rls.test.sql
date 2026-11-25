@@ -5,7 +5,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(29);
+select plan(40);
 
 -- Helper: how many rows a DML statement touched (CTEs with DML cannot sit in a subquery).
 create function public.rows_affected(q text) returns integer language plpgsql as $$
@@ -21,6 +21,11 @@ insert into public.projects (id, title, image)
 values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Fixture project', 'https://example.com/p.png');
 insert into public.messages (name, email, message)
 values ('Fixture', 'fixture@example.com', 'A pre-existing private message.');
+-- now() is frozen inside a transaction: age the settings row so the admin update below
+-- can prove the updated_at trigger.
+alter table public.site_settings disable trigger site_settings_set_updated_at;
+update public.site_settings set updated_at = '2000-01-01';
+alter table public.site_settings enable trigger site_settings_set_updated_at;
 
 -- ================================================================== anonymous
 reset role;
@@ -54,6 +59,14 @@ select throws_ok(
   $$ select public.submit_message('Ada Lovelace', 'ada@example.com', 'Fourth message here') $$,
   'P0001', 'rate_limited', 'fourth message from one email within an hour is rate limited');
 
+select is((select count(*)::int from public.site_settings), 1, 'anon can read site settings');
+select throws_ok(
+  $$ update public.site_settings set cv_url = 'https://evil.example.com/cv' $$,
+  '42501', null, 'anon cannot update site settings');
+select throws_ok(
+  $$ insert into public.site_settings (id, cv_url) values (true, 'https://evil.example.com/cv') $$,
+  '42501', null, 'anon cannot insert site settings');
+
 -- ==================================================== authenticated, NOT admin
 reset role;
 select set_config('request.jwt.claims',
@@ -67,6 +80,9 @@ select is((select count(*)::int from public.messages), 0, 'a signed-in non-admin
 select throws_ok(
   $$ insert into storage.objects (bucket_id, name) values ('portfolio-media', 'projects/x.png') $$,
   '42501', null, 'a signed-in non-admin cannot upload to the media bucket');
+
+select is(public.rows_affected($$ update public.site_settings set cv_url = 'https://evil.example.com/cv' $$), 0,
+  'a signed-in non-admin update touches no settings');
 
 -- ============================================================== admin identity
 reset role;
@@ -134,6 +150,29 @@ select is(
   (select string_agg(name, ',' order by sort_order) from public.tech_stack where sort_order < 3),
   'Probe A,Probe B,Probe C',
   'a multi-row insert keeps its own order');
+
+-- ================================================================ site settings
+select lives_ok(
+  $$ update public.site_settings set cv_url = 'https://drive.google.com/file/d/abc/view?usp=sharing' $$,
+  'admin can update the CV link');
+select ok(
+  (select updated_at > '2001-01-01' from public.site_settings),
+  'site settings updated_at is maintained by the trigger');
+select throws_ok(
+  $$ insert into public.site_settings (id, cv_url) values (true, 'https://example.com/cv') $$,
+  '42501', null, 'not even the admin can insert a settings row');
+select throws_ok(
+  $$ delete from public.site_settings $$,
+  '42501', null, 'not even the admin can delete the settings row');
+select throws_ok(
+  $$ update public.site_settings set cv_url = 'http://example.com/cv' $$,
+  '23514', null, 'the CV link must be https');
+select throws_ok(
+  $$ update public.site_settings set cv_url = 'javascript:alert(1)' $$,
+  '23514', null, 'the CV link cannot be a script URL');
+select throws_ok(
+  $$ update public.site_settings set cv_url = 'https://a@evil.example.com/cv' $$,
+  '23514', null, 'the CV link cannot carry user info');
 
 -- ================================================================== constraints
 select throws_ok(
