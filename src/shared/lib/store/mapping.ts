@@ -1,4 +1,4 @@
-import type { Collection, StoreErrorCode } from './types';
+import type { Collection, SiteSettings, StoreErrorCode } from './types';
 
 // DB snake_case <-> UI camelCase lives only here. The UI never sees it.
 const TO_DB: Record<Collection, Record<string, string>> = {
@@ -27,6 +27,12 @@ export function toRow(collection: Collection, values: Record<string, unknown>) {
   delete row.updated_at;
   return row;
 }
+
+export const settingsFromRow = (row: Record<string, unknown>): SiteSettings => ({
+  cvUrl: String(row.cv_url),
+});
+
+export const settingsToRow = (settings: SiteSettings) => ({ cv_url: settings.cvUrl });
 
 export class StoreError extends Error {
   readonly code: StoreErrorCode;

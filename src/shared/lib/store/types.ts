@@ -34,6 +34,16 @@ export interface Message {
   created_at: string;
 }
 
+/** Site-wide values the admin edits. One row, so not a Collection. */
+export interface SiteSettings {
+  cvUrl: string;
+}
+
+export interface SettingsResult {
+  data: SiteSettings;
+  source: 'live' | 'seed';
+}
+
 export interface CollectionMap {
   projects: Project;
   certificates: Certificate;

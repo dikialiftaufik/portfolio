@@ -14,7 +14,7 @@ function builder(result: () => Result, calls: string[]) {
       calls.push(`${name}(${args.map((a) => JSON.stringify(a)).join(',')})`);
       return q;
     };
-  for (const m of ['select', 'order', 'eq', 'insert', 'update', 'delete', 'single'])
+  for (const m of ['select', 'order', 'eq', 'insert', 'update', 'delete', 'single', 'maybeSingle'])
     q[m] = chain(m);
   q.then = (resolve: (r: Result) => unknown, reject?: (e: unknown) => unknown) =>
     Promise.resolve(result()).then(resolve, reject);
