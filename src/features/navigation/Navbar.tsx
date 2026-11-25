@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import type { Lang, Translation } from '@/shared/lib/locale';
-import { profile } from '@/shared/lib/profile';
 import { LanguageSwitch } from './LanguageSwitch';
+import { useCvUrl } from './useCvUrl';
 
 const SECTION_IDS = ['home', 'about', 'showcase', 'contact'] as const;
+const CV_LINK_CLS =
+  'rounded-xs bg-cyan-400 px-5 py-2 font-heading text-sm font-bold text-void transition-colors hover:bg-cyan-500 hover:shadow-neon';
 
 interface Props {
   lang: Lang;
@@ -15,6 +17,7 @@ interface Props {
 export function Navbar({ lang, setLang, t }: Props) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const cvUrl = useCvUrl();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -64,12 +67,7 @@ export function Navbar({ lang, setLang, t }: Props) {
           <div className="rounded-md border border-white/5 bg-white/5 p-1.5">
             <LanguageSwitch lang={lang} setLang={setLang} />
           </div>
-          <a
-            href={profile.cvUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-xs bg-cyan-400 px-5 py-2 font-heading text-sm font-bold text-void transition-colors hover:bg-cyan-500 hover:shadow-neon"
-          >
+          <a href={cvUrl} target="_blank" rel="noopener noreferrer" className={CV_LINK_CLS}>
             Download CV
           </a>
         </div>
@@ -105,6 +103,15 @@ export function Navbar({ lang, setLang, t }: Props) {
           <div className="pt-2">
             <LanguageSwitch lang={lang} setLang={setLang} />
           </div>
+          <a
+            href={cvUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setMobileOpen(false)}
+            className={`${CV_LINK_CLS} block py-3 text-center`}
+          >
+            Download CV
+          </a>
         </div>
       )}
     </nav>

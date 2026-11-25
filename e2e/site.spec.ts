@@ -1,5 +1,7 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { mockLiveBackend, mockOfflineBackend } from './helpers';
+import { profile } from '../src/shared/lib/profile';
+import { LIVE_CV_URL, mockLiveBackend, mockOfflineBackend } from './helpers';
 
 test.describe('public site, backend up', () => {
   test('renders live content without the cached-content banner', async ({ page }) => {
@@ -139,5 +141,61 @@ test.describe('reduced motion', () => {
     await mockOfflineBackend(page);
     await page.goto('/');
     await expect(page.getByText('Junior Web Developer').first()).toBeVisible();
+  });
+});
+
+test.describe('Download CV link', () => {
+  const button = { name: 'Download CV' };
+
+  test('points at the link the admin saved', async ({ page }) => {
+    await mockLiveBackend(page);
+    await page.goto('/');
+    await expect(page.getByRole('link', button)).toHaveAttribute('href', LIVE_CV_URL);
+  });
+
+  test('keeps the bundled link when the backend is down', async ({ page }) => {
+    await mockOfflineBackend(page);
+    await page.goto('/');
+    await expect(page.getByText('Showing cached content')).toBeVisible();
+    await expect(page.getByRole('link', button)).toHaveAttribute('href', profile.cvUrl);
+  });
+
+  test.describe('on a phone', () => {
+    test.use({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' });
+
+    test('the menu offers the saved link, opens it in a new tab and closes', async ({
+      page,
+      context,
+    }) => {
+      await mockLiveBackend(page);
+      await context.route('https://files.example.com/**', (r) =>
+        r.fulfill({ status: 200, contentType: 'text/html', body: '<title>CV</title>' }),
+      );
+      await page.goto('/');
+      await expect(page.getByText('Live Project 1')).toBeVisible();
+      await page.getByRole('button', { name: 'Menu' }).click();
+      const link = page.getByTestId('mobile-menu').getByRole('link', button);
+      await expect(link).toHaveAttribute('href', LIVE_CV_URL);
+
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+        .analyze();
+      expect(violations.map((v) => v.id)).toEqual([]);
+
+      const popup = page.waitForEvent('popup');
+      await link.click();
+      await expect(await popup).toHaveURL(LIVE_CV_URL);
+      await expect(page.getByTestId('mobile-menu')).toHaveCount(0);
+    });
+
+    test('the menu falls back to the bundled link when the backend is down', async ({ page }) => {
+      await mockOfflineBackend(page);
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Menu' }).click();
+      await expect(page.getByTestId('mobile-menu').getByRole('link', button)).toHaveAttribute(
+        'href',
+        profile.cvUrl,
+      );
+    });
   });
 });

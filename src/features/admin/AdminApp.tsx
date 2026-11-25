@@ -10,6 +10,7 @@ import {
   type ContentRow,
   type DeleteTarget,
 } from './components';
+import { CvLinkSection } from './CvLinkSection';
 import { CertForm } from './forms/CertForm';
 import { ProjectForm } from './forms/ProjectForm';
 import { TechForm } from './forms/TechForm';
@@ -313,6 +314,7 @@ export function AdminApp() {
               )}
             </section>
           ))}
+          <CvLinkSection onNotice={setNotice} />
           <InboxSection
             items={messages}
             onMarkRead={markRead}
