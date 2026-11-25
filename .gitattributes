@@ -1,0 +1,6 @@
+# Keep LF in every checkout so Prettier and git hooks behave the same on all systems.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.webp binary
