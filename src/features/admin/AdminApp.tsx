@@ -35,6 +35,8 @@ export function AdminApp() {
   const [configured, setConfigured] = useState(false);
   const [lists, setLists] = useState<Lists>({ projects: [], certificates: [], tech_stack: [] });
   const [source, setSource] = useState<'live' | 'seed'>('seed');
+  // Sections showing a live list right now: a new item's default position needs its length.
+  const [ready, setReady] = useState<Partial<Record<AdminCollection, boolean>>>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -85,6 +87,10 @@ export function AdminApp() {
             c?.status === 'fulfilled' ? (c.value.data as ContentRow[]) : prev.certificates,
           tech_stack: t?.status === 'fulfilled' ? (t.value.data as ContentRow[]) : prev.tech_stack,
         }));
+        const arrived = (r: typeof p | typeof c | typeof t) =>
+          r?.status === 'fulfilled' && r.value.source === 'live';
+        // Not sticky: a later fallback to the seed list must disable Add again.
+        setReady({ projects: arrived(p), certificates: arrived(c), tech_stack: arrived(t) });
         if (m?.status === 'fulfilled') {
           setMessages(
             (m.value.data as Message[])
@@ -135,7 +141,11 @@ export function AdminApp() {
     try {
       let image = values.image as string | undefined;
       if (fileInfo?.file) image = await uploadImage(fileInfo.file, folder);
-      const payload = (collection === 'tech_stack' ? values : { ...values, image }) as never;
+      const draft: Record<string, unknown> =
+        collection === 'tech_stack' ? { ...values } : { ...values, image };
+      // Other rows may have shifted this one since the form opened: only send a changed ORDER.
+      if (row && draft.sort_order === row.sort_order) delete draft.sort_order;
+      const payload = draft as never;
       const old = row && 'image' in row ? row.image : null;
       if (row) await PortfolioStore.update(collection, (row as { id: string }).id, payload);
       else await PortfolioStore.create(collection, payload);
@@ -192,7 +202,8 @@ export function AdminApp() {
         void saveForm(ed.collection, ed.row, values as Record<string, unknown>, fileInfo),
     };
     const key = (ed.row && (ed.row as { id?: string }).id) || 'new';
-    const initial = ed.row ?? {};
+    // A new item defaults to the end of its list; 0 puts it first.
+    const initial = ed.row ?? { sort_order: lists[ed.collection].length };
     if (ed.collection === 'projects')
       return <ProjectForm key={key} initial={initial} {...common} />;
     if (ed.collection === 'certificates')
@@ -254,11 +265,12 @@ export function AdminApp() {
                 <span className="font-mono text-xs text-neutral-400">{lists[sec.id].length}</span>
                 <button
                   type="button"
+                  disabled={!ready[sec.id]}
                   onClick={() => {
                     setFormError(null);
                     setEditing({ collection: sec.id, row: null });
                   }}
-                  className="ml-auto rounded border border-white/15 px-3 py-1.5 font-mono text-xs hover:border-cyan-400 hover:text-cyan-400"
+                  className="ml-auto rounded border border-white/15 px-3 py-1.5 font-mono text-xs enabled:hover:border-cyan-400 enabled:hover:text-cyan-400 disabled:opacity-50"
                 >
                   {sec.add}
                 </button>

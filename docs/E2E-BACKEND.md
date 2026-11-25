@@ -21,6 +21,9 @@ Prerequisites: migrations applied in order (`docs/SECURITY-RUNBOOK.md`), `seed.s
 3. Open `/` in an **incognito window**. PASS: the probe card appears, no code touched.
 4. Refresh the incognito page. PASS: card persists.
 5. Edit the probe title in admin. PASS: the public view reflects it (realtime or after refresh).
+   5a. Set the probe's ORDER to `0` and save. PASS: it shows first in admin and on `/`, and the others
+   shift down by one. Picking a file under Upload shows a preview before saving, with no CSP error
+   in the console.
 6. Delete the probe in admin (confirm in the dialog). PASS: "Project deleted"; gone from public view.
 
 ## B. Contact inbox round-trip

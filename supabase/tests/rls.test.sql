@@ -5,7 +5,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(29);
 
 -- Helper: how many rows a DML statement touched (CTEs with DML cannot sit in a subquery).
 create function public.rows_affected(q text) returns integer language plpgsql as $$
@@ -89,6 +89,51 @@ select cmp_ok((select count(*)::int from public.messages), '>=', 1, 'admin can r
 select lives_ok(
   $$ insert into storage.objects (bucket_id, name) values ('portfolio-media', 'projects/ok.png') $$,
   'admin can upload to the media bucket');
+
+-- ================================================================== positions
+-- sort_order is a dense 0-based position (migration 0004). now() is frozen here,
+-- so none of these rely on created_at.
+insert into public.projects (id, title, image, sort_order)
+values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Position probe', 'https://example.com/b.png', 0);
+select is(
+  (select sort_order from public.projects where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 0,
+  'inserting at position 0 puts the row first');
+select ok(
+  (select count(distinct sort_order) = count(*) and min(sort_order) = 0
+      and max(sort_order) = count(*) - 1 from public.projects),
+  'positions stay unique and dense after an insert');
+
+update public.projects set sort_order = 999 where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+select is(
+  (select sort_order from public.projects where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),
+  (select count(*)::int - 1 from public.projects),
+  'a position past the end is clamped to last');
+
+update public.projects set sort_order = -5 where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+select is(
+  (select sort_order from public.projects where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 0,
+  'a negative position is clamped to first');
+
+update public.projects set title = 'Position probe, renamed'
+ where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+select is(
+  (select sort_order from public.projects where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'), 0,
+  'editing another field keeps the position');
+
+delete from public.projects where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+select ok(
+  (select count(distinct sort_order) = count(*) and min(sort_order) = 0
+      and max(sort_order) = count(*) - 1 from public.projects),
+  'deleting a row closes the gap');
+
+-- The seed.sql shape: one statement, several rows, consecutive positions.
+insert into public.tech_stack (name, icon, sort_order)
+values ('Probe A', 'devicon-a-plain', 0), ('Probe B', 'devicon-b-plain', 1),
+       ('Probe C', 'devicon-c-plain', 2);
+select is(
+  (select string_agg(name, ',' order by sort_order) from public.tech_stack where sort_order < 3),
+  'Probe A,Probe B,Probe C',
+  'a multi-row insert keeps its own order');
 
 -- ================================================================== constraints
 select throws_ok(

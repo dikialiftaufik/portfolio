@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type Route } from '@playwright/test';
+import vercel from '../vercel.json' with { type: 'json' };
 import { API } from './helpers';
 
 // Signed-in admin flows against an intercepted backend. supabase-js reads its session from
@@ -152,6 +153,8 @@ test.describe('admin console, signed in', () => {
     await expect(page.getByText('Project saved.')).toBeVisible();
     expect(writes[0]!.method).toBe('PATCH');
     expect(writes[0]!.url).toContain(`id=eq.${PROJECT.id}`);
+    // ORDER was not touched, so a stale position must not be written back.
+    expect(writes[0]!.body).not.toHaveProperty('sort_order');
   });
 
   test('delete asks for confirmation, traps focus, and Escape cancels', async ({ page }) => {
@@ -193,4 +196,92 @@ test.describe('admin console, signed in', () => {
     await page.getByRole('button', { name: 'Save project' }).click();
     await expect(page.getByRole('alert')).toContainText('Your session expired. Log in again.');
   });
+});
+
+// `vite preview` does not send vercel.json headers, so apply the production CSP by hand:
+// a preview that works here but is blocked in production would otherwise go unnoticed.
+const PRODUCTION_CSP = vercel.headers
+  .flatMap((h) => h.headers)
+  .find((h) => h.key === 'Content-Security-Policy')!.value;
+
+const PNG_1PX = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+);
+const upload = { name: 'cover.png', mimeType: 'image/png', buffer: PNG_1PX };
+
+const decodedWidth = (page: Page) =>
+  page
+    .getByRole('img', { name: 'Preview' })
+    .evaluate((img) => (img as HTMLImageElement).naturalWidth);
+
+test.describe('admin forms: order and upload preview', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/admin.html', async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({
+        response,
+        headers: { ...response.headers(), 'content-security-policy': PRODUCTION_CSP },
+      });
+    });
+  });
+
+  test('cannot add while a list is only the cached fallback', async ({ page }) => {
+    await signedIn(page);
+    await page.route(`${API}/rest/v1/projects*`, (route) => route.abort('failed'));
+    await page.goto('/admin.html');
+    await expect(page.getByRole('button', { name: 'Add certificate' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Add project' })).toBeDisabled();
+  });
+
+  test('a new project defaults to last, and position 0 is sent as 0', async ({ page }) => {
+    const { writes } = await signedIn(page);
+    await page.goto('/admin.html');
+    await expect(page.getByText('Existing Project')).toBeVisible();
+    await page.getByRole('button', { name: 'Add project' }).click();
+
+    const order = page.getByRole('spinbutton', { name: 'ORDER' });
+    await expect(order).toHaveValue('1'); // one project exists
+    await order.fill('0');
+    await page.getByRole('textbox', { name: 'TITLE' }).fill('First In Line');
+    await page.getByRole('textbox', { name: 'TECH (comma-separated)' }).fill('React');
+    await page.getByRole('textbox', { name: 'IMAGE URL' }).fill('https://example.com/cover.png');
+    await page.getByRole('button', { name: 'Save project' }).click();
+
+    await expect(page.getByText('Project saved.')).toBeVisible();
+    expect(writes[0]!.body).toMatchObject({ sort_order: 0 });
+  });
+
+  for (const { section, add, fileLabel } of [
+    { section: 'project', add: 'Add project', fileLabel: /^FILE \(PNG/ },
+    { section: 'certificate', add: 'Add certificate', fileLabel: /^FILE \(PNG/ },
+  ]) {
+    test(`previews a picked ${section} image under the production CSP, accessibly`, async ({
+      page,
+    }) => {
+      const violations: string[] = [];
+      page.on('console', (m) => {
+        if (m.text().includes('Content Security Policy') && m.text().includes('blob:')) {
+          violations.push(m.text());
+        }
+      });
+      await signedIn(page);
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.goto('/admin.html');
+      await expect(page.getByText('Existing Project')).toBeVisible();
+      await page.getByRole('button', { name: add }).click();
+      if (section === 'project') await page.getByRole('radio', { name: /Upload/ }).check();
+
+      await page.getByLabel(fileLabel).setInputFiles(upload);
+
+      await expect(page.getByRole('img', { name: 'Preview' })).toBeVisible();
+      await expect.poll(() => decodedWidth(page)).toBe(1);
+      expect(violations).toEqual([]);
+
+      const scan = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+        .analyze();
+      expect(scan.violations.map((v) => v.id)).toEqual([]);
+    });
+  }
 });

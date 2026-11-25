@@ -1,13 +1,21 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import type { Project, Values } from '@/shared/lib/store';
 import { OptimizedImage } from '@/shared/ui/OptimizedImage';
+import { describeFile, imageFileError } from '../upload';
+import { ImagePreview } from './ImagePreview';
 import {
   Field,
   FormActions,
+  ORDER_HINT,
+  PREVIEW_ERROR,
   ServerError,
   fieldCls,
   focusFirstError,
+  hintCls,
   labelCls,
+  orderError,
+  previewCls,
+  toPosition,
   type FormErrors,
   type FormProps,
 } from './shared';
@@ -22,13 +30,34 @@ export function ProjectForm({ initial, busy, serverError, onSubmit, onCancel }: 
     tech: (initial.tech ?? []).join(', '),
     image: initial.image ?? '',
     githubLink: initial.githubLink ?? '',
-    sort_order: initial.sort_order ?? 0,
+    sort_order: String(initial.sort_order ?? 0),
     mode: 'url' as 'url' | 'upload',
     file: null as File | null,
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const set = (k: keyof typeof v) => (e: { target: { value: string } }) =>
     setV((s) => ({ ...s, [k]: e.target.value }));
+  const fileRef = useRef<HTMLInputElement>(null);
+  const savedImage = initial.image ?? '';
+  const shownImage = v.mode === 'url' ? v.image : savedImage;
+
+  const setMode = (mode: 'url' | 'upload') => {
+    setV((s) => ({ ...s, mode }));
+    setErrors((s) => ({ ...s, image: undefined }));
+  };
+  const pickFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    const image = file ? imageFileError(file) : undefined;
+    // Clearing the input lets the same file be picked again after it is fixed.
+    if (image) e.target.value = '';
+    setV((s) => ({ ...s, file: image ? null : file }));
+    setErrors((s) => ({ ...s, image }));
+  };
+  const rejectPreview = () => {
+    if (fileRef.current) fileRef.current.value = '';
+    setV((s) => ({ ...s, file: null }));
+    setErrors((s) => ({ ...s, image: PREVIEW_ERROR }));
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -46,10 +75,11 @@ export function ProjectForm({ initial, busy, serverError, onSubmit, onCancel }: 
         .filter(Boolean).length < 1
     )
       errs.tech = 'Add at least one technology.';
+    errs.sort_order = orderError(v.sort_order);
     if (v.mode === 'url' && !/^https?:\/\//.test(image) && !/^assets\//.test(image)) {
       errs.image = 'Paste an https URL or pick Upload.';
     }
-    if (v.mode === 'upload' && !v.file && !v.image) errs.image = 'Choose a file first.';
+    if (v.mode === 'upload' && !v.file && !savedImage) errs.image = 'Choose a file first.';
     if (v.githubLink.trim() && !/^https?:\/\//.test(v.githubLink.trim())) {
       errs.githubLink = 'Use a full https URL or leave it empty.';
     }
@@ -64,9 +94,9 @@ export function ProjectForm({ initial, busy, serverError, onSubmit, onCancel }: 
           .split(',')
           .map((x) => x.trim())
           .filter(Boolean),
-        image: v.mode === 'url' ? image : v.image,
+        image: v.mode === 'url' ? image : savedImage,
         githubLink: v.githubLink.trim() || null,
-        sort_order: Number(v.sort_order) || 0,
+        sort_order: toPosition(v.sort_order),
       },
       v.mode === 'upload' ? { file: v.file } : null,
     );
@@ -125,14 +155,21 @@ export function ProjectForm({ initial, busy, serverError, onSubmit, onCancel }: 
             aria-invalid={!!errors.tech}
           />
         </Field>
-        <Field id="pf-sort_order" label="ORDER">
+        <Field id="pf-sort_order" label="ORDER" error={errors.sort_order}>
           <input
             id="pf-sort_order"
             type="number"
             value={v.sort_order}
             onChange={set('sort_order')}
-            className={fieldCls()}
+            className={fieldCls(errors.sort_order)}
+            aria-invalid={!!errors.sort_order}
+            aria-describedby={
+              errors.sort_order ? 'pf-sort_order-hint pf-sort_order-error' : 'pf-sort_order-hint'
+            }
           />
+          <p id="pf-sort_order-hint" className={hintCls}>
+            {ORDER_HINT}
+          </p>
         </Field>
       </div>
       <fieldset className="space-y-2">
@@ -143,7 +180,7 @@ export function ProjectForm({ initial, busy, serverError, onSubmit, onCancel }: 
               type="radio"
               name="pf-mode"
               checked={v.mode === 'url'}
-              onChange={() => setV((s) => ({ ...s, mode: 'url' }))}
+              onChange={() => setMode('url')}
             />{' '}
             URL
           </label>
@@ -152,7 +189,7 @@ export function ProjectForm({ initial, busy, serverError, onSubmit, onCancel }: 
               type="radio"
               name="pf-mode"
               checked={v.mode === 'upload'}
-              onChange={() => setV((s) => ({ ...s, mode: 'upload' }))}
+              onChange={() => setMode('upload')}
             />{' '}
             Upload (resized automatically)
           </label>
@@ -171,23 +208,28 @@ export function ProjectForm({ initial, busy, serverError, onSubmit, onCancel }: 
         ) : (
           <Field id="pf-image" label="FILE (PNG, JPG, WebP, up to 10 MB)" error={errors.image}>
             <input
+              ref={fileRef}
               id="pf-image"
               type="file"
               accept=".png,.jpg,.jpeg,.webp"
-              onChange={(e) => setV((s) => ({ ...s, file: e.target.files?.[0] ?? null }))}
+              onChange={pickFile}
               className="w-full text-sm text-neutral-300"
+              aria-invalid={!!errors.image}
+              aria-describedby={errors.image ? 'pf-image-error' : undefined}
             />
-            <p className="font-mono text-xs text-neutral-400">
-              {v.file ? v.file.name : 'No file chosen.'}
+            <p className={hintCls}>
+              {v.file
+                ? describeFile(v.file)
+                : savedImage
+                  ? 'No file chosen. Current image kept.'
+                  : 'No file chosen.'}
             </p>
           </Field>
         )}
-        {v.mode === 'url' && v.image ? (
-          <OptimizedImage
-            src={v.image}
-            alt="Preview"
-            className="aspect-video w-full rounded border border-white/10 object-cover"
-          />
+        {v.mode === 'upload' && v.file ? (
+          <ImagePreview file={v.file} className={previewCls} onError={rejectPreview} />
+        ) : shownImage ? (
+          <OptimizedImage src={shownImage} alt="Preview" className={previewCls} />
         ) : null}
       </fieldset>
       <Field id="pf-githubLink" label="GITHUB (optional)" error={errors.githubLink}>
