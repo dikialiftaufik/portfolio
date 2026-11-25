@@ -4,9 +4,13 @@ title = "portfolio"
 useDefault = true
 
 # The Supabase ANON key is public by design (it ships in every page load; row-level
-# security is the access control). It is committed on purpose in .env.production.
-# A service_role key must NEVER match this allowlist: only the exact anon JWT does.
+# security is the access control). It is committed on purpose in .env.production,
+# and older commits carry it in config.production.js.
+# A service_role key must NEVER match this allowlist: only the exact anon JWT does,
+# and only in these files (condition = "AND"; the default "OR" would skip whole files).
+# Global [[allowlists]] needs gitleaks >= 8.25.0 (version pinned in ci.yml).
 [[allowlists]]
 description = "Public Supabase anon key (role=anon), committed on purpose"
-paths = ['''^\.env\.production$''', '''^\.env\.e2e$''']
+condition = "AND"
+paths = ['''^\.env\.production$''', '''^config\.production\.js$''']
 regexes = ['''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFreGxtbm1kZnd6ZG1zc2FpZ3FrIiwicm9sZSI6ImFub24i''']
