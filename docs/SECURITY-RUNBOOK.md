@@ -41,6 +41,8 @@ SQL Editor, jalankan isi file ini **satu per satu, berurutan**:
    build baru** (nama file gambar sertifikat diperbaiki).
 4. `supabase/migrations/0004_content_positions.sql`: ORDER menjadi posisi (0 = paling atas),
    item lain bergeser otomatis. Urutan yang sekarang terlihat tidak berubah. Aman dijalankan ulang.
+5. `supabase/migrations/0005_site_settings.sql`: link tombol "Download CV" bisa diubah di admin.
+   Baris awalnya berisi link bawaan; menjalankan ulang tidak menimpa link yang sudah Anda ubah.
 
 Lewat CLI (opsional): `npx supabase link --project-ref PROJECT` lalu `npx supabase db push`.
 
@@ -48,15 +50,16 @@ Setelah 0002: **log out lalu log in sekali lagi** di `/admin.html` agar JWT memb
 
 ## 4. Verifikasi (urutan ini)
 
-| Uji                                                     | Hasil yang benar                            |
-| ------------------------------------------------------- | ------------------------------------------- |
-| `GET /rest/v1/projects?select=id,title` dengan anon key | 200 + baris                                 |
-| `POST /rest/v1/projects` dengan anon key                | 401/403                                     |
-| `POST /rest/v1/messages` langsung dengan anon key       | 401/403 (sekarang harus lewat RPC)          |
-| Form kontak di situs                                    | "Message sent", baris muncul di Inbox admin |
-| Kirim 4 pesan dengan email sama dalam 1 jam             | pesan ke-4 ditolak ("Too many messages…")   |
-| Admin: tambah/edit/hapus proyek, upload gambar          | berhasil                                    |
-| Akun kedua yang login (uji manual, lalu hapus)          | tidak bisa menulis                          |
+| Uji                                                       | Hasil yang benar                            |
+| --------------------------------------------------------- | ------------------------------------------- |
+| `GET /rest/v1/projects?select=id,title` dengan anon key   | 200 + baris                                 |
+| `POST /rest/v1/projects` dengan anon key                  | 401/403                                     |
+| `PATCH /rest/v1/site_settings?id=eq.true` dengan anon key | 401/403                                     |
+| `POST /rest/v1/messages` langsung dengan anon key         | 401/403 (sekarang harus lewat RPC)          |
+| Form kontak di situs                                      | "Message sent", baris muncul di Inbox admin |
+| Kirim 4 pesan dengan email sama dalam 1 jam               | pesan ke-4 ditolak ("Too many messages…")   |
+| Admin: tambah/edit/hapus proyek, upload gambar            | berhasil                                    |
+| Akun kedua yang login (uji manual, lalu hapus)            | tidak bisa menulis                          |
 
 Tes otomatisnya ada di `supabase/tests/rls.test.sql` (`npx supabase start && npx supabase db reset && npx supabase test db`, butuh Docker).
 

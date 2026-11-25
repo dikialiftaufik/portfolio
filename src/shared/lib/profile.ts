@@ -5,6 +5,7 @@ export const profile = {
   name: 'Diki Alif Taufik',
   email: 'dikialif550@gmail.com',
   location: 'Bandung, Indonesia',
+  // Fallback only: the live CV link is edited in the admin console (ADR-0006).
   cvUrl: 'https://drive.google.com/file/d/1g0QLk5X0iVHT6ocU8TfEqbkOS-xsR3wm/view?usp=sharing',
   githubUrl: 'https://github.com/dikialiftaufik?tab=repositories',
   instagramUrl: 'https://www.instagram.com/dikialif_/',

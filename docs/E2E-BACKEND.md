@@ -26,6 +26,10 @@ Prerequisites: migrations applied in order (`docs/SECURITY-RUNBOOK.md`), `seed.s
    in the console.
 6. Delete the probe in admin (confirm in the dialog). PASS: "Project deleted"; gone from public view.
 
+6a. In admin → Site settings, edit the CV link, save, then choose "Open link". PASS: "CV link saved.",
+and the file also opens in a private window without signing in. Reload `/` on a desktop browser and
+on a real phone (Menu → Download CV). PASS: both open the new link in a new tab. Restore the link.
+
 ## B. Contact inbox round-trip
 
 7. In the incognito view send "E2E probe message — safe to delete".
