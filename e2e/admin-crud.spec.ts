@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import vercel from '../vercel.json' with { type: 'json' };
-import { API } from './helpers';
+import { API, singleRow } from './helpers';
 
 // Signed-in admin flows against an intercepted backend. supabase-js reads its session from
 // localStorage (key sb-<project-ref>-auth-token, ref = first host label = "e2e").
@@ -42,6 +42,8 @@ const MESSAGE = {
   created_at: '2026-01-02T10:00:00Z',
 };
 
+const CV_URL = 'https://files.example.com/old-cv.pdf';
+
 interface Recorded {
   method: string;
   url: string;
@@ -78,6 +80,16 @@ async function signedIn(page: Page, opts: { denyWrites?: boolean; reloaded?: unk
   await page.route(`${API}/rest/v1/certificates*`, table([]));
   await page.route(`${API}/rest/v1/tech_stack*`, table([]));
   await page.route(`${API}/rest/v1/messages*`, table([MESSAGE]));
+  await page.route(`${API}/rest/v1/site_settings*`, async (route) => {
+    const req = route.request();
+    if (req.method() === 'GET') return singleRow(route, { cv_url: CV_URL });
+    writes.push({ method: req.method(), url: req.url(), body: req.postDataJSON() });
+    // RLS filters a refused update away: PostgREST then has no row to return.
+    if (opts.denyWrites) {
+      return json(route, { code: 'PGRST116', message: 'no rows returned' }, 406);
+    }
+    return singleRow(route, req.postDataJSON());
+  });
   return { writes };
 }
 
@@ -296,4 +308,70 @@ test.describe('admin forms: order and upload preview', () => {
       expect(scan.violations.map((v) => v.id)).toEqual([]);
     });
   }
+});
+
+test.describe('admin console: Download CV link', () => {
+  const open = async (page: Page) => {
+    await page.goto('/admin.html');
+    await page.getByRole('button', { name: 'Edit CV link' }).click();
+    return page.getByRole('textbox', { name: 'CV LINK' });
+  };
+
+  test('rejects a bad link without writing, then saves a good one', async ({ page }) => {
+    const { writes } = await signedIn(page);
+    const input = await open(page);
+    await expect(input).toBeFocused();
+    await expect(input).toHaveValue(CV_URL);
+
+    await input.fill('http://example.com/cv.pdf');
+    await page.getByRole('button', { name: 'Save CV link' }).click();
+    await expect(page.getByText('Paste a full https link')).toBeVisible();
+    expect(writes).toHaveLength(0);
+
+    await input.fill('https://example.com/new-cv.pdf');
+    await page.getByRole('button', { name: 'Save CV link' }).click();
+    await expect(page.getByText('CV link saved.')).toBeVisible();
+    await expect(input).toHaveCount(0);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]!.method).toBe('PATCH');
+    expect(writes[0]!.url).toContain('id=eq.true');
+    expect(writes[0]!.body).toEqual({ cv_url: 'https://example.com/new-cv.pdf' });
+  });
+
+  test('keeps the form and the typed link when the server refuses', async ({ page }) => {
+    await signedIn(page, { denyWrites: true });
+    const input = await open(page);
+    await input.fill('https://example.com/new-cv.pdf');
+    await page.getByRole('button', { name: 'Save CV link' }).click();
+    await expect(page.getByRole('alert')).toContainText('Your session expired. Log in again.');
+    await expect(input).toHaveValue('https://example.com/new-cv.pdf');
+  });
+
+  test('cannot edit while the settings did not load', async ({ page }) => {
+    await signedIn(page);
+    await page.route(`${API}/rest/v1/site_settings*`, (route) => route.abort('failed'));
+    await page.goto('/admin.html');
+    await expect(page.getByText("Couldn't load site settings.")).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Edit CV link' })).toBeDisabled();
+  });
+
+  test('keeps Edit visible but disabled when the server errors', async ({ page }) => {
+    await signedIn(page);
+    await page.route(`${API}/rest/v1/site_settings*`, (route) =>
+      json(route, { code: 'XX000', message: 'boom' }, 500),
+    );
+    await page.goto('/admin.html');
+    await expect(page.getByText("Couldn't load site settings.")).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Edit CV link' })).toBeDisabled();
+  });
+
+  test('the section and its form have no WCAG 2.2 AA violations', async ({ page }) => {
+    await signedIn(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await open(page);
+    const { violations } = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(violations.map((v) => v.id)).toEqual([]);
+  });
 });

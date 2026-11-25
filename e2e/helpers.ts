@@ -18,6 +18,14 @@ const project = (n: number) => ({
 const json = (route: Route, body: unknown, status = 200) =>
   route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
+export const LIVE_CV_URL = 'https://files.example.com/live-cv.pdf';
+
+/** PostgREST answers one object when the client asks for one, otherwise an array. */
+export const singleRow = (route: Route, row: object) => {
+  const one = route.request().headers()['accept']?.includes('vnd.pgrst.object');
+  return json(route, one ? row : [row]);
+};
+
 /** Backend "up": REST returns fixtures, the contact RPC succeeds (and is recorded). */
 export async function mockLiveBackend(page: Page) {
   const rpcCalls: unknown[] = [];
@@ -37,6 +45,7 @@ export async function mockLiveBackend(page: Page) {
   await page.route(`${API}/rest/v1/tech_stack*`, (r) =>
     json(r, [{ id: 't1', name: 'React', icon: 'devicon-react-original', sort_order: 0 }]),
   );
+  await page.route(`${API}/rest/v1/site_settings*`, (r) => singleRow(r, { cv_url: LIVE_CV_URL }));
   await page.route(`${API}/rest/v1/rpc/submit_message`, async (r) => {
     rpcCalls.push(r.request().postDataJSON());
     await r.fulfill({ status: 204, body: '' });

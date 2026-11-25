@@ -26,7 +26,7 @@ export const deleteNoun = (collection: Collection): string =>
 
 export const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const btnGhost =
+export const btnGhost =
   'rounded border border-white/15 px-3 py-1.5 font-mono text-xs hover:border-cyan-400 hover:text-cyan-400';
 const btnDanger =
   'rounded border border-red-500/40 px-3 py-1.5 font-mono text-xs text-red-300 hover:bg-red-500 hover:text-white';

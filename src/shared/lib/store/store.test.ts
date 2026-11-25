@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fakeSupabase, type FakeOptions } from '@/test/fakeSupabase';
 import { certificatesData, projectsData, techStackData } from '@/content/seed';
+import { profile } from '../profile';
 import { createPortfolioStore } from './store';
 import { isStoreError } from './mapping';
 
@@ -13,6 +14,11 @@ function liveStore(opts: FakeOptions = {}) {
 }
 
 const seedStore = () => createPortfolioStore({ config: () => null, client: async () => null });
+
+const codeError = (code: string): FakeOptions => ({
+  table: { data: null, error: { code, message: code } },
+});
+const netError = (message: string): FakeOptions => ({ table: { data: null, error: { message } } });
 
 const expectCode = async (promise: Promise<unknown>, code: string) => {
   const err = await promise.then(
@@ -167,5 +173,73 @@ describe('PortfolioStore.subscribe', () => {
     const off = store.subscribe('projects', vi.fn());
     await Promise.resolve();
     expect(() => off()).not.toThrow();
+  });
+});
+
+describe('PortfolioStore.getSettings', () => {
+  const bundled = { data: { cvUrl: profile.cvUrl }, source: 'seed' };
+
+  it('serves the bundled link when the backend is not configured', async () => {
+    expect(await seedStore().getSettings()).toEqual(bundled);
+  });
+
+  it('maps the live row and marks it live', async () => {
+    const { store, calls } = liveStore({
+      table: { data: { cv_url: 'https://example.com/cv' }, error: null },
+    });
+    expect(await store.getSettings()).toEqual({
+      data: { cvUrl: 'https://example.com/cv' },
+      source: 'live',
+    });
+    expect(calls).toEqual(['from(site_settings)', 'select("cv_url")', 'maybeSingle()']);
+  });
+
+  it.each([
+    ['the network is down', { throwOnTable: new TypeError('Failed to fetch') }],
+    ['the request returns a network error', netError('TypeError: Failed to fetch')],
+    ['PostgREST does not know the table yet', codeError('PGRST205')],
+    ['the table does not exist yet', codeError('42P01')],
+    ['the row is missing', { table: { data: null, error: null } }],
+  ])('falls back to the bundled link when %s', async (_name, opts) => {
+    expect(await liveStore(opts).store.getSettings()).toEqual(bundled);
+  });
+
+  it('surfaces other server errors', async () => {
+    const { store } = liveStore(codeError('500'));
+    await expect(store.getSettings()).rejects.toMatchObject({ code: '500' });
+  });
+});
+
+describe('PortfolioStore.updateSettings', () => {
+  const LINK = { cvUrl: 'https://example.com/cv' };
+
+  it('sends only the normalized cv_url to the single row', async () => {
+    const { store, calls } = liveStore({ table: { data: { cv_url: LINK.cvUrl }, error: null } });
+    expect(await store.updateSettings({ cvUrl: ' HTTPS://EXAMPLE.com/cv ' })).toEqual(LINK);
+    expect(calls).toEqual([
+      'from(site_settings)',
+      'update({"cv_url":"https://example.com/cv"})',
+      'eq("id",true)',
+      'select("cv_url")',
+      'single()',
+    ]);
+  });
+
+  it('rejects a bad link before any request', async () => {
+    const { store, calls } = liveStore();
+    await expectCode(store.updateSettings({ cvUrl: 'http://example.com' }), 'validation');
+    expect(calls).toEqual([]);
+  });
+
+  it('reads "no row came back" as denied (RLS filtered the update)', async () => {
+    await expectCode(liveStore(codeError('PGRST116')).store.updateSettings(LINK), 'denied');
+  });
+
+  it('classifies other failures', async () => {
+    await expectCode(liveStore(codeError('42501')).store.updateSettings(LINK), 'denied');
+  });
+
+  it('refuses to write without a backend', async () => {
+    await expectCode(seedStore().updateSettings(LINK), 'not-configured');
   });
 });

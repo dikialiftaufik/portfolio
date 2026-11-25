@@ -3,6 +3,8 @@
 //   subscribe(collection, cb)   -> unsubscribe()
 //   create / update / remove    -> admin writes (live backend only)
 //   sendMessage(input)          -> visitor contact form
+//   getSettings()               -> { data, source: 'live' | 'seed' }
+//   updateSettings(values)      -> admin write of the single settings row
 //   client()                    -> supabase client | null (admin auth surface)
 // Adapters: Supabase (live) and Seed (offline fallback).
 // Error codes: 'not-configured' | 'offline' | 'denied' | 'validation' | 'rate-limited'.
@@ -10,12 +12,33 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { certificatesData, projectsData, techStackData } from '@/content/seed';
 import type { BackendConfig } from '../config';
-import { StoreError, classify, fromRow, isStoreError, toRow } from './mapping';
-import type { Collection, CollectionMap, ListResult, MessageInput, Values } from './types';
+import { parseCvUrl } from '../cvLink';
+import { profile } from '../profile';
+import {
+  StoreError,
+  classify,
+  fromRow,
+  isStoreError,
+  settingsFromRow,
+  settingsToRow,
+  toRow,
+} from './mapping';
+import type {
+  Collection,
+  CollectionMap,
+  ListResult,
+  MessageInput,
+  SettingsResult,
+  SiteSettings,
+  Values,
+} from './types';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const COLLECTIONS: readonly Collection[] = ['projects', 'certificates', 'tech_stack', 'messages'];
 const RPC_MISSING = 'PGRST202';
+// Migration 0005 not applied yet (PostgREST schema cache / Postgres).
+const TABLE_MISSING = ['PGRST205', '42P01'];
+const NO_ROWS = 'PGRST116';
 
 export interface StoreDeps {
   config: () => BackendConfig | null;
@@ -55,7 +78,54 @@ export function createPortfolioStore({ config, client }: StoreDeps) {
     return (data as Row[]).map((r) => fromRow(collection, r));
   }
 
+  const bundledSettings = (): SettingsResult => ({
+    data: { cvUrl: profile.cvUrl },
+    source: 'seed',
+  });
+
   return {
+    async getSettings(): Promise<SettingsResult> {
+      if (!config()) return bundledSettings();
+      try {
+        const sb = await requireLive();
+        const { data, error } = await sb.from('site_settings').select('cv_url').maybeSingle();
+        if (error) {
+          if (TABLE_MISSING.includes(error.code)) return bundledSettings();
+          throw classify(error);
+        }
+        if (!data) return bundledSettings();
+        return { data: settingsFromRow(data as Row), source: 'live' };
+      } catch (e) {
+        if ((isStoreError(e) && e.code === 'offline') || e instanceof TypeError) {
+          return bundledSettings();
+        }
+        throw e;
+      }
+    },
+
+    async updateSettings(values: SiteSettings): Promise<SiteSettings> {
+      const link = parseCvUrl(values.cvUrl);
+      if (link.url === undefined) throw new StoreError('validation', link.error);
+      const sb = await requireLive();
+      const { data, error } = await sb
+        .from('site_settings')
+        .update(settingsToRow({ cvUrl: link.url }))
+        .eq('id', true)
+        .select('cv_url')
+        .single();
+      if (error) {
+        // RLS hides the row instead of failing, so a refused update comes back empty.
+        if (error.code === NO_ROWS) {
+          throw new StoreError(
+            'denied',
+            'Action not allowed. Your session may have expired. Log in again.',
+          );
+        }
+        throw classify(error);
+      }
+      return settingsFromRow(data as Row);
+    },
+
     async list<C extends Collection>(collection: C): Promise<ListResult<CollectionMap[C]>> {
       if (!COLLECTIONS.includes(collection)) {
         throw new StoreError('validation', `Unknown collection: ${String(collection)}.`);
