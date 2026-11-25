@@ -1,12 +1,20 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import type { Certificate, Values } from '@/shared/lib/store';
-import { monthLabel } from '../upload';
+import { OptimizedImage } from '@/shared/ui/OptimizedImage';
+import { describeFile, imageFileError, monthLabel } from '../upload';
+import { ImagePreview } from './ImagePreview';
 import {
   Field,
   FormActions,
+  ORDER_HINT,
+  PREVIEW_ERROR,
   ServerError,
   fieldCls,
   focusFirstError,
+  hintCls,
+  orderError,
+  previewCls,
+  toPosition,
   type FormErrors,
   type FormProps,
 } from './shared';
@@ -19,12 +27,27 @@ export function CertForm({ initial, busy, serverError, onSubmit, onCancel }: Pro
     issuer: initial.issuer ?? '',
     month: '',
     image: initial.image ?? '',
-    sort_order: initial.sort_order ?? 0,
+    sort_order: String(initial.sort_order ?? 0),
     file: null as File | null,
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const set = (k: keyof typeof v) => (e: { target: { value: string } }) =>
     setV((s) => ({ ...s, [k]: e.target.value }));
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const pickFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    const image = file ? imageFileError(file) : undefined;
+    // Clearing the input lets the same file be picked again after it is fixed.
+    if (image) e.target.value = '';
+    setV((s) => ({ ...s, file: image ? null : file }));
+    setErrors((s) => ({ ...s, image }));
+  };
+  const rejectPreview = () => {
+    if (fileRef.current) fileRef.current.value = '';
+    setV((s) => ({ ...s, file: null }));
+    setErrors((s) => ({ ...s, image: PREVIEW_ERROR }));
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -35,6 +58,7 @@ export function CertForm({ initial, busy, serverError, onSubmit, onCancel }: Pro
     if (v.issuer.trim().length < 2) errs.issuer = 'Name the issuer.';
     const label = initial.date && !v.month ? initial.date : monthLabel(v.month);
     if (!/^[A-Z][a-z]{2} [0-9]{4}$/.test(label)) errs.month = 'Pick a month.';
+    errs.sort_order = orderError(v.sort_order);
     if (!v.file && !v.image) errs.image = 'Choose a file or keep the current image.';
     setErrors(errs);
     if (focusFirstError('cf', errs)) return;
@@ -44,7 +68,7 @@ export function CertForm({ initial, busy, serverError, onSubmit, onCancel }: Pro
         issuer: v.issuer.trim(),
         date: label,
         image: v.image,
-        sort_order: Number(v.sort_order) || 0,
+        sort_order: toPosition(v.sort_order),
       },
       v.file ? { file: v.file } : null,
     );
@@ -91,32 +115,49 @@ export function CertForm({ initial, busy, serverError, onSubmit, onCancel }: Pro
             aria-invalid={!!errors.month}
           />
         </Field>
-        <Field id="cf-sort_order" label="ORDER">
+        <Field id="cf-sort_order" label="ORDER" error={errors.sort_order}>
           <input
             id="cf-sort_order"
             type="number"
             value={v.sort_order}
             onChange={set('sort_order')}
-            className={fieldCls()}
+            className={fieldCls(errors.sort_order)}
+            aria-invalid={!!errors.sort_order}
+            aria-describedby={
+              errors.sort_order ? 'cf-sort_order-hint cf-sort_order-error' : 'cf-sort_order-hint'
+            }
           />
+          <p id="cf-sort_order-hint" className={hintCls}>
+            {ORDER_HINT}
+          </p>
         </Field>
       </div>
-      <Field
-        id="cf-image"
-        label={`FILE (PNG, JPG, WebP, up to 10 MB)${v.image ? ' — current kept unless replaced' : ''}`}
-        error={errors.image}
-      >
-        <input
-          id="cf-image"
-          type="file"
-          accept=".png,.jpg,.jpeg,.webp"
-          onChange={(e) => setV((s) => ({ ...s, file: e.target.files?.[0] ?? null }))}
-          className="w-full text-sm text-neutral-300"
-        />
-        <p className="font-mono text-xs text-neutral-400">
-          {v.file ? v.file.name : 'No file chosen.'}
-        </p>
-      </Field>
+      <div className="space-y-2">
+        <Field id="cf-image" label="FILE (PNG, JPG, WebP, up to 10 MB)" error={errors.image}>
+          <input
+            ref={fileRef}
+            id="cf-image"
+            type="file"
+            accept=".png,.jpg,.jpeg,.webp"
+            onChange={pickFile}
+            className="w-full text-sm text-neutral-300"
+            aria-invalid={!!errors.image}
+            aria-describedby={errors.image ? 'cf-image-error' : undefined}
+          />
+          <p className={hintCls}>
+            {v.file
+              ? describeFile(v.file)
+              : v.image
+                ? 'No file chosen. Current image kept.'
+                : 'No file chosen.'}
+          </p>
+        </Field>
+        {v.file ? (
+          <ImagePreview file={v.file} className={previewCls} onError={rejectPreview} />
+        ) : v.image ? (
+          <OptimizedImage src={v.image} alt="Preview" className={previewCls} />
+        ) : null}
+      </div>
       <FormActions busy={busy} submitLabel="Save certificate" onCancel={onCancel} />
     </form>
   );

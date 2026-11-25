@@ -29,11 +29,28 @@ export function validateImageFile(file: Pick<File, 'type' | 'size' | 'name'>): s
   const ext = ALLOWED_IMAGE[file.type];
   if (!ext) throw validation('Use a PNG, JPG, or WebP image.');
   if (file.size > MAX_INPUT_BYTES) {
-    throw validation('Image is too large. Choose a file under 10 MB or paste a URL.');
+    throw validation('Image is too large. Choose a file under 10 MB.');
   }
   const base = normalizeFileName(file.name);
   if (!base) throw validation('Rename the file with letters or numbers first.');
   return base;
+}
+
+/** Same rules as validateImageFile, as a field message for the moment a file is picked. */
+export function imageFileError(file: Pick<File, 'type' | 'size' | 'name'>): string | undefined {
+  try {
+    validateImageFile(file);
+    return undefined;
+  } catch (e) {
+    return (e as Error).message;
+  }
+}
+
+/** "cover.png · 1.2 MB" for the line under a file input. */
+export function describeFile({ name, size }: Pick<File, 'name' | 'size'>): string {
+  const mb = size / (1024 * 1024);
+  const readable = mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`;
+  return `${name} · ${readable}`;
 }
 
 /** Downscale + re-encode as WebP in the browser. Falls back to the original file. */
@@ -72,9 +89,7 @@ export async function uploadImage(file: File, folder: 'projects' | 'certs'): Pro
   validateImageFile(file);
   const prepared = await compressImage(file);
   if (prepared.size > MAX_UPLOAD_BYTES) {
-    throw validation(
-      'Image is still over 2 MB after compression. Choose a smaller file or paste a URL.',
-    );
+    throw validation('Image is still over 2 MB after compression. Choose a smaller file.');
   }
   const ext = ALLOWED_IMAGE[prepared.type] ?? 'webp';
   const base = normalizeFileName(file.name);
