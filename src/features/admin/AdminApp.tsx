@@ -38,6 +38,8 @@ export function AdminApp() {
   // Sections showing a live list right now: a new item's default position needs its length.
   const [ready, setReady] = useState<Partial<Record<AdminCollection, boolean>>>({});
   const [notice, setNotice] = useState<string | null>(null);
+  // Kept apart from `notice`: a reload must not wipe the result of the action that caused it.
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -100,7 +102,7 @@ export function AdminApp() {
         }
         const live = [p, c, t].every((r) => r?.status === 'fulfilled' && r.value.source === 'live');
         setSource(live ? 'live' : 'seed');
-        setNotice(
+        setLoadError(
           failed.length
             ? `Couldn't load ${failed.join(', ')}. Check your connection and try again.`
             : null,
@@ -126,6 +128,7 @@ export function AdminApp() {
   }, [authState, load]);
 
   const logout = () => {
+    setNotice(null);
     void PortfolioStore.client().then((sb) => sb?.auth.signOut());
   };
 
@@ -136,6 +139,7 @@ export function AdminApp() {
     fileInfo: { file: File | null } | null,
   ) => {
     setFormBusy(true);
+    setNotice(null);
     setFormError(null);
     const folder = collection === 'projects' ? 'projects' : 'certs';
     try {
@@ -168,6 +172,7 @@ export function AdminApp() {
   };
 
   const markRead = (m: Message) => {
+    setNotice(null);
     PortfolioStore.update('messages', m.id, { is_read: true })
       .then(() => load())
       .catch(() => setNotice("Couldn't update the message. Check your connection and try again."));
@@ -176,6 +181,7 @@ export function AdminApp() {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleteBusy(true);
+    setNotice(null);
     setDeleteError(null);
     try {
       await PortfolioStore.remove(deleteTarget.collection, (deleteTarget.row as { id: string }).id);
@@ -243,7 +249,9 @@ export function AdminApp() {
       </header>
 
       <div role="status" aria-live="polite">
-        {notice ? <p className="mb-6 font-mono text-sm text-cyan-300">{notice}</p> : null}
+        {loadError || notice ? (
+          <p className="mb-6 font-mono text-sm text-cyan-300">{loadError ?? notice}</p>
+        ) : null}
       </div>
 
       {authState === 'checking' ? (

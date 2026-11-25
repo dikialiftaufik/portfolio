@@ -48,16 +48,17 @@ interface Recorded {
   body: unknown;
 }
 
-async function signedIn(page: Page, opts: { denyWrites?: boolean } = {}) {
+async function signedIn(page: Page, opts: { denyWrites?: boolean; reloaded?: unknown[] } = {}) {
   const writes: Recorded[] = [];
   await page.addInitScript((s) => {
     localStorage.setItem('sb-e2e-auth-token', JSON.stringify(s));
   }, SESSION);
 
-  const table = (rows: unknown[]) => async (route: Route) => {
+  // `reloaded` is what the projects list returns once something has been written.
+  const table = (rows: unknown[], reloaded?: unknown[]) => async (route: Route) => {
     const req = route.request();
     const method = req.method();
-    if (method === 'GET') return json(route, rows);
+    if (method === 'GET') return json(route, writes.length && reloaded ? reloaded : rows);
     writes.push({ method, url: req.url(), body: req.postData() ? req.postDataJSON() : null });
     if (opts.denyWrites) {
       return json(
@@ -73,7 +74,7 @@ async function signedIn(page: Page, opts: { denyWrites?: boolean } = {}) {
       method === 'POST' ? 201 : 200,
     );
   };
-  await page.route(`${API}/rest/v1/projects*`, table([PROJECT]));
+  await page.route(`${API}/rest/v1/projects*`, table([PROJECT], opts.reloaded));
   await page.route(`${API}/rest/v1/certificates*`, table([]));
   await page.route(`${API}/rest/v1/tech_stack*`, table([]));
   await page.route(`${API}/rest/v1/messages*`, table([MESSAGE]));
@@ -155,6 +156,17 @@ test.describe('admin console, signed in', () => {
     expect(writes[0]!.url).toContain(`id=eq.${PROJECT.id}`);
     // ORDER was not touched, so a stale position must not be written back.
     expect(writes[0]!.body).not.toHaveProperty('sort_order');
+  });
+
+  test('keeps the success message after the lists reload', async ({ page }) => {
+    const marker = { ...PROJECT, title: 'Reloaded Project' };
+    await signedIn(page, { reloaded: [marker] });
+    await page.goto('/admin.html');
+    await page.getByRole('button', { name: 'Edit Existing Project' }).click();
+    await page.getByRole('button', { name: 'Save project' }).click();
+    // The new title proves the reload has been applied before the message is checked.
+    await expect(page.getByText('Reloaded Project')).toBeVisible();
+    await expect(page.getByText('Project saved.')).toBeVisible();
   });
 
   test('delete asks for confirmation, traps focus, and Escape cancels', async ({ page }) => {
