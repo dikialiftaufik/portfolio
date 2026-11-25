@@ -1,0 +1,271 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/plus-jakarta-sans/wght.css';
+@import '@fontsource-variable/jetbrains-mono/wght.css';
+@import '@fontsource-variable/space-grotesk/wght.css';
+
+/* Theme tokens (moved from the Tailwind Play CDN inline config). */
+@theme {
+  --color-void: #050b14;
+  --color-titanium: #ededed;
+  --color-cyan-400: #00f0ff;
+  --color-cyan-500: #00d0df;
+  --color-cyan-900: #003033;
+  --color-steel: #2d3748;
+  --color-glass: rgba(20, 20, 20, 0.7);
+  --color-card: rgba(255, 255, 255, 0.03);
+  --color-editor: #1e1e1e;
+
+  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --font-heading: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-neon: 0 0 20px rgba(0, 240, 255, 0.3);
+  --shadow-neon-strong: 0 0 30px rgba(0, 240, 255, 0.5);
+  --shadow-inset-pressed:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.8), inset -1px -1px 0 rgba(255, 255, 255, 0.1);
+
+  --animate-blink: blink 1s step-end infinite;
+  --animate-float-slow: float 15s ease-in-out infinite;
+  --animate-pulse-glow: pulseGlow 4s ease-in-out infinite;
+  --animate-fade-up: fadeUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+  @keyframes pulseGlow {
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(1.05);
+    }
+  }
+  @keyframes fadeUp {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Tailwind v4 buttons default to cursor:default; keep the v3 behaviour. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2d3748;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00f0ff;
+}
+
+.glass-panel {
+  background: rgba(20, 20, 20, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.flag-btn {
+  transition: all 0.2s ease;
+  filter: grayscale(100%);
+  opacity: 0.6;
+  border: 1px solid transparent;
+}
+.flag-btn:hover {
+  filter: grayscale(0%);
+  opacity: 0.9;
+}
+.flag-btn.active {
+  filter: grayscale(0%);
+  opacity: 1;
+  transform: scale(0.95);
+  box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cert-overlay {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+/* Grid horizon effect */
+.perspective-grid {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(0, 240, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 240, 255, 0.1) 1px, transparent 1px);
+  transform: perspective(500px) rotateX(60deg);
+  transform-origin: bottom;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
+}
+
+/* Film grain, self-contained (no third-party host). */
+.film-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------------------------------------------------------------
+   Responsive layer. Utilities live in Tailwind classes; this only
+   holds what utilities can't express.
+   --------------------------------------------------------------- */
+html,
+body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    /* Unlayered rules outrank Tailwind's layered utilities: no !important needed. */
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+  }
+}
+
+@media (max-width: 1024px) {
+  nav .max-w-7xl {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  /* About: stack copy above chatbot */
+  #about .grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  /* Chatbot height follows viewport instead of fixed 500px */
+  #about .glass-panel {
+    height: 60vh;
+    min-height: 450px;
+    max-height: 600px;
+  }
+
+  #about .overflow-x-auto {
+    padding-bottom: 5px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Keep hero clear of the fixed navbar */
+  #home {
+    padding-top: 60px;
+  }
+
+  /* Typing line wraps instead of clipping */
+  #home .typing-line {
+    height: auto;
+    min-height: 3rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Full-width tap targets on stacked hero buttons */
+  #home .flex-col button {
+    width: 100%;
+  }
+
+  /* Tab bar scrolls horizontally instead of squeezing */
+  #showcase .tab-bar {
+    width: 100%;
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  /* Contact: form first, info below */
+  #contact .grid {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 3rem;
+  }
+
+  #contact h2 {
+    text-align: center;
+  }
+
+  #contact form {
+    padding: 1.5rem;
+  }
+
+  footer .text-right {
+    text-align: center;
+  }
+}
+
+/* Anchor targets clear the fixed navbar */
+main section[id],
+#main,
+#admin-main,
+.admin-form-wrap {
+  scroll-margin-top: 80px;
+}
+
+/* Visible keyboard focus on links and buttons (inputs keep their own rings) */
+a:focus-visible,
+button:focus-visible,
+[role='tab']:focus-visible {
+  outline: 2px solid #00f0ff;
+  outline-offset: 2px;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+/* Admin console */
+.admin-console :focus-visible {
+  outline: 2px solid #00f0ff;
+  outline-offset: 2px;
+}
+.admin-rows > li {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 76px;
+}

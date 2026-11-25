@@ -1,5 +1,5 @@
 -- Portfolio seed — Task 1.
--- Values copied VERBATIM from js/content.js (commit c6cff1a). Do not improvise.
+-- Values copied VERBATIM from src/content/seed.ts (originally js/content.js). Do not improvise.
 -- Stable ids keep E2E deterministic. Re-runnable (upsert on id).
 
 -- ------------------------------------------------------------- projects
@@ -43,7 +43,7 @@ values
   ('a1111111-1111-4111-8111-111111111111',
    'InnovAItion: AI Skilling for Young Workers',
    'Plan International', 'Oct 2025',
-   'assets/images/certs/cert-innovaiition-plan-2025.jpg', 0),
+   'assets/images/certs/cert-innovation-plan-2025.jpg', 0),
   ('a2222222-2222-4222-8222-222222222222',
    'Electives AI Training',
    'Generation Girl', 'Dec 2025',
