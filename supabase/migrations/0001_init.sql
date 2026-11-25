@@ -1,7 +1,6 @@
--- Portfolio backend contract — Task 1.
--- Supabase Postgres: Content tables (projects, certificates, tech_stack)
--- + Inbox (messages) + Storage bucket (portfolio-media), all with RLS.
--- Idempotent: safe to run more than once via SQL Editor.
+-- 0001_init: content tables, inbox, v1 RLS policies, Storage bucket.
+-- Run ONCE, first. Do not re-run it after 0002: it recreates the permissive v1
+-- policies that 0002 replaces with admin-only ones (0002 itself is safe to re-run).
 -- NOTE: seed image values may be relative `assets/...` paths (pre-Storage
 -- legacy uploads) or absolute https URLs (Storage uploads / external).
 
