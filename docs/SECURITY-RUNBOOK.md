@@ -39,6 +39,8 @@ SQL Editor, jalankan isi file ini **satu per satu, berurutan**:
    rate limit, trigger `updated_at`, batas MIME bucket. Aman dijalankan ulang.
 3. `supabase/migrations/0003_fix_cert_image_typo.sql`: jalankan **segera setelah deploy
    build baru** (nama file gambar sertifikat diperbaiki).
+4. `supabase/migrations/0004_content_positions.sql`: ORDER menjadi posisi (0 = paling atas),
+   item lain bergeser otomatis. Urutan yang sekarang terlihat tidak berubah. Aman dijalankan ulang.
 
 Lewat CLI (opsional): `npx supabase link --project-ref PROJECT` lalu `npx supabase db push`.
 

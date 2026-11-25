@@ -46,7 +46,7 @@ src/
 public/                    # favicon, og-image, assets/ (optimized legacy images), tech/ (generated)
 assets-src/                # master images; `npm run images` writes public/assets
 supabase/
-  migrations/              # 0001 init · 0002 admin hardening · 0003 image typo (versioned)
+  migrations/              # 0001 init · 0002 admin hardening · 0003 image typo · 0004 content positions
   tests/rls.test.sql       # pgTAP contract for RLS and constraints
   seed.sql                 # stable-id seed
 e2e/                       # Playwright specs (live, offline, a11y, admin)

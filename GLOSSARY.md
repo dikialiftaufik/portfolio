@@ -12,6 +12,7 @@ Domain and architecture terms used in this portfolio. Architecture words follow 
 - **Admin** — the portfolio owner, signed in to the admin console.
 - **Store** — the live-data Module both views read through. Interface: `list/subscribe/create/update/remove/sendMessage` in `src/shared/lib/store`; Supabase and Seed are its Adapters.
 - **Adapter** — the backend behind the Store in a given situation (live backend or frozen seed).
+- **Position** — `sort_order` on content tables: a dense 0-based place in the list (0 shows first), enforced by the database (ADR-0005).
 - **Seed** — the frozen fallback data used when the backend is unreachable or unconfigured.
 - **Admin identity** — the user whose `app_metadata.role` is `admin`; the only identity RLS lets write (ADR-0003).
 - **Contact RPC** — `public.submit_message`, the rate-limited entry point for visitor messages (ADR-0004).
