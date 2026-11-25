@@ -53,6 +53,9 @@ export default defineConfig(({ mode }) => {
     resolve: { alias: { '@': resolve(root, 'src') } },
     build: {
       assetsDir: 'static',
+      // The CSP in vercel.json is `font-src 'self'`, so an inlined `data:` font gets
+      // blocked. Fonts are always emitted as files; other assets keep Vite's default.
+      assetsInlineLimit: (filePath: string) => (/\.woff2?$/i.test(filePath) ? false : undefined),
       target: 'es2022',
       sourcemap: false,
       rollupOptions: {
