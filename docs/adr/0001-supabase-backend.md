@@ -12,7 +12,7 @@ Content (projects, certificates, tech stack) and the contact Inbox live in Supab
 ## Consequences
 
 - The anon key is public by design; row-level security is the real access control, so `service_role` must never enter the repo or the browser.
-- When the backend is unreachable or unconfigured, the user view falls back to the frozen seed in `js/content.js` with an honest banner — never a blank page or a false success.
+- When the backend is unreachable or unconfigured, the user view falls back to the frozen seed in `src/content/seed.ts` with an honest banner — never a blank page or a false success.
 - Free-tier limits (database size, bandwidth, idle pause) apply; the exit path is a plain SQL dump, no lock-in beyond Postgres.
 
 ## Verify RLS (replace PROJECT with the project ref, ANON with the anon key)

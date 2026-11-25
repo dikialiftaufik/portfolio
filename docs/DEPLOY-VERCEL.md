@@ -1,85 +1,65 @@
-# Panduan Deploy Vercel + Backend Supabase (Lengkap)
+# Panduan Deploy Vercel + Backend Supabase
 
-Tujuan akhir: edit konten lewat halaman admin dari mana saja, dan
-pengunjung alamat Vercel langsung melihat perubahannya — tanpa redeploy
-untuk perubahan konten.
+Tujuan: edit konten lewat halaman admin dari mana saja, dan pengunjung langsung melihat
+perubahannya tanpa redeploy untuk perubahan konten.
 
 ## Cara kerja (wajib paham dulu, 1 menit)
 
-- **Data tinggal di Supabase**, bukan di file website. Admin dan halaman
-  publik sama-sama membaca database yang sama.
-- **Ubah konten ≠ redeploy.** Redeploy hanya dibutuhkan kalau kodenya
-  berubah (`index.html`, `admin.html`, `css/`, `js/`).
-- Kredensial dibaca berlapis: `config.local.js` (milik Anda, tidak
-  di-commit) menang bila ada; kalau tidak ada, dipakai
-  `config.production.js` (anon key publik, ikut ter-deploy). Kalau
-  keduanya hilang → mode seed + banner "Showing cached content…".
+- **Data tinggal di Supabase**, bukan di file website. Admin dan halaman publik membaca
+  database yang sama.
+- **Ubah konten ≠ redeploy.** Redeploy hanya dibutuhkan kalau kode berubah (`src/`,
+  `index.html`, `admin.html`, `public/`).
+- Situs sekarang **di-build** (Vite). Vercel menjalankan `npm run build` dan menyajikan `dist/`.
+- Kredensial dibaca dari variabel `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY`. Nilai
+  default ada di `.env.production` (anon key publik, ikut ter-commit). Variabel dengan nama
+  sama di dashboard Vercel menimpanya. Tanpa keduanya → mode seed + banner "Showing cached content…".
 
-## Bagian 0 — Pastikan backend hijau (sekali saja)
+## Bagian 0 — Backend hijau (sekali saja)
 
-1. Supabase SQL Editor → Run **seluruh** `supabase/schema.sql` → `Success`.
-2. Run `supabase/seed.sql` per blok bila perlu → `Success`.
-3. Cek jumlah baris: projects **3**, certificates **7**, tech_stack **18**:
-   ```sql
-   select count(*) from public.projects;
-   select count(*) from public.certificates;
-   select count(*) from public.tech_stack;
-   ```
-4. Authentication → 1 admin user berstatus Confirmed (Auto Confirm ON).
-5. Storage → bucket `portfolio-media` ada dan Public.
-6. Uji RLS (perintah lengkap di `docs/adr/0001-supabase-backend.md`):
-   baca anonim → 200, tulis anonim → 401.
+Ikuti `docs/SECURITY-RUNBOOK.md` langkah 1–4 (matikan sign-up, tandai admin, terapkan migrasi).
+Lalu cek jumlah baris: projects **3**, certificates **7**, tech_stack **18**:
+
+```sql
+select count(*) from public.projects;
+select count(*) from public.certificates;
+select count(*) from public.tech_stack;
+```
 
 ## Bagian 1 — Sambungkan Vercel (sekali saja)
 
-1. Push repo ini ke GitHub (`git push`). Pastikan commit terbaru
-   (termasuk `config.production.js`) ikut ter-push.
-2. Buka dashboard Vercel → project Anda. Jika deploy otomatis aktif
-   (bawaan saat import dari GitHub), tunggu ±1 menit sampai status
-   **Ready**. Jika tidak: Deployments → titik tiga → **Redeploy**.
-3. Tidak perlu setting environment variable, build command, atau
-   routing khusus — `/admin.html` bisa dibuka langsung karena filenya
-   memang ada (static murni, tanpa framework).
+1. Push repo ke GitHub, import ke Vercel. `vercel.json` sudah berisi framework Vite,
+   header keamanan (CSP, HSTS, dll.) dan rewrite `/admin` → `/admin.html`.
+2. Tunggu status **Ready**. Tidak perlu env var kecuali ingin menimpa `.env.production`.
+3. Jalankan migrasi `0003` segera setelah deploy pertama build baru ini.
 
 ## Bagian 2 — Verifikasi produksi (setiap habis deploy)
 
-1. Buka `https://<nama-anda>.vercel.app/` → **tidak boleh ada** banner
-   "Showing cached content…". Kalau ada → config tidak terbaca, lihat
-   tabel masalah di bawah.
-2. Buka `https://<nama-anda>.vercel.app/admin.html` → login admin.
-3. Tambah proyek `E2E-PROBE-cek` → "Project saved".
-4. Buka halaman publik di **incognito** → kartu muncul. Hapus lagi
-   proyeknya lewat admin → hilang. Inbox: kirim pesan dari form kontak
-   → muncul di admin → tandai baca → hapus.
+1. Buka `https://<domain>/` → **tidak boleh ada** banner "Showing cached content…".
+2. Buka `/admin.html` → login admin.
+3. Tambah proyek `E2E-PROBE-cek` → "Project saved"; lihat di jendela incognito; hapus lagi.
+4. Kirim pesan dari form kontak → muncul di Inbox → tandai baca → hapus.
+5. DevTools → Network: tidak ada permintaan ke host selain domain Anda dan `*.supabase.co`;
+   Console: tanpa pelanggaran CSP.
 
-## Bagian 3 — Cara pakai sehari-hari
+## Bagian 3 — Sehari-hari
 
-- Edit konten dari HP/laptop mana pun: buka `/admin.html` di alamat
-  Vercel → login → tambah/edit/hapus → tersimpan ke Supabase.
-- Pengunjung langsung melihat hasil — tidak perlu buka Vercel, tidak
-  perlu redeploy, tidak perlu sentuh kode/VS Code.
-- Tambah gambar: upload di form admin (maks 2 MB, otomatis ke bucket
-  `portfolio-media`) atau tempel URL `https://…`.
-- Perubahan kode (tampilan/fitur) → commit + push → Vercel deploy ulang
-  otomatis → verifikasi Bagian 2.
+- Edit konten: `/admin.html` → login → tambah/edit/hapus.
+- Tambah gambar: upload di form admin (diperkecil otomatis jadi WebP ≤ 1600px, maks 2 MB
+  setelah kompresi) atau tempel URL `https://…`.
+- Perubahan kode: PR → CI hijau (`quality`, `e2e`, `lighthouse`) → merge → Vercel deploy.
 
-## Bagian 4 — Kalau ada masalah
+## Bagian 4 — Masalah umum
 
-| Gejala di Vercel | Penyebab | Perbaikan |
-|---|---|---|
-| Banner "Showing cached content…" | `config.production.js` tidak ter-deploy / URL salah | Pastikan file ter-commit + ter-push; cek isi URL project |
-| Admin: "Backend isn't configured" | Sama seperti di atas | Sama seperti di atas |
-| Login gagal | User belum Confirmed / salah project | Authentication → cek status; samakan URL dengan project yang benar |
-| Simpan gagal / 401 | Sesi kedaluwarsa | Log out → log in lagi |
-| Gambar rusak | Bucket tidak Public / policy Storage belum jalan | Storage → cek bucket; re-run `supabase/schema.sql` |
-| Pesan kontak tidak masuk inbox | Policy insert `messages` belum efektif | Re-run **penuh** `supabase/schema.sql`, uji ulang probe |
-| Data lama muncul setelah edit | Cache browser / realtime terputus | Refresh; cek koneksi; data di DB adalah kebenaran |
+| Gejala di Vercel                           | Penyebab                                                | Perbaikan                                                                                |
+| ------------------------------------------ | ------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Banner "Showing cached content…"           | env tidak terbaca / URL salah / Supabase tertidur       | Cek `.env.production` atau env Vercel; buka dashboard Supabase untuk membangunkan proyek |
+| Admin: "Backend isn't connected"           | Sama seperti di atas                                    | Sama                                                                                     |
+| Login berhasil tapi simpan gagal (401/403) | Akun belum ditandai admin atau JWT lama                 | Runbook langkah 2, lalu log out/in                                                       |
+| Gambar sertifikat pertama rusak            | Migrasi `0003` belum dijalankan                         | Jalankan `0003`                                                                          |
+| Pesan kontak gagal                         | Migrasi `0002` belum diterapkan atau terkena rate limit | Terapkan `0002`; tunggu 1 jam bila 3 pesan dengan email sama                             |
+| Console penuh pelanggaran CSP              | Sumber baru (domain gambar/skrip)                       | Ubah `Content-Security-Policy` di `vercel.json` secara sadar                             |
 
 ## Bagian 5 — Keamanan & rotasi key
 
-- Yang terlihat di source code website (anon key) **aman terlihat** —
-  Supabase merancangnya begitu; pagarnya adalah RLS di database.
-- Yang **tidak boleh bocor**: `service_role`, password admin, JWT secret.
-- Kalau anon key perlu diganti: Supabase dashboard → Project Settings →
-  API → buat/putar key → update `config.production.js` (dan
-  `config.local.js` lokal) → commit + push → redeploy.
+- Anon key aman terlihat (pagarnya RLS). **Tidak boleh bocor**: `service_role`, password admin, JWT secret.
+- Putar key: Supabase → Project Settings → API → buat key baru → perbarui `.env.production` / env Vercel → redeploy.

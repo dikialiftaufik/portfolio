@@ -1,94 +1,93 @@
 # Portfolio — Diki Alif Taufik
 
-Two views, one backend, still no build step: public portfolio (`/`) plus an
-admin console (`/admin.html`), both React 18 UMD + Tailwind Play CDN + Babel
-standalone reading live data through `PortfolioStore` (`js/store.js`).
+Public portfolio (`/`) plus an admin console (`/admin.html`) on one Supabase backend.
+React 19 · TypeScript (strict) · Vite · Tailwind v4 · Supabase (Postgres + RLS + Auth + Storage + Realtime) · Vercel.
 
-## Preview
+## Quick start
 
 ```bash
-npx serve .
-# user view:  http://localhost:3000/
-# admin:      http://localhost:3000/admin.html
+nvm use            # Node 22 (.nvmrc)
+npm install
+npm run dev        # http://localhost:5173/   admin: /admin.html
 ```
 
-On first run without backend config, both views render from the frozen seed
-in `js/content.js` with an honest "Showing cached content…" banner.
+Without backend config both views render from the frozen seed (`src/content/seed.ts`) with an
+honest "Showing cached content…" banner. To connect a Supabase project, copy `.env.example`
+to `.env.local` and fill in the URL and **anon** key (Project Settings → API).
 
-## Backend setup (Supabase, once per machine)
+## Scripts
 
-1. Create a project at Supabase, then SQL Editor → run `supabase/schema.sql`
-   (tables + RLS + `portfolio-media` bucket) → run `supabase/seed.sql`
-   (3 projects, 7 certificates, 18 tech items).
-2. Authentication → Add user → one admin account (turn **Auto Confirm** on).
-3. Storage → confirm the `portfolio-media` bucket exists and is public.
-4. Copy `config.local.example.js` to `config.local.js` (git-ignored, never
-   committed) and fill in the project URL + **anon** key from
-   Project Settings → API.
+| Script                                  | What it does                                                                     |
+| --------------------------------------- | -------------------------------------------------------------------------------- |
+| `npm run dev` / `build` / `preview`     | Vite dev server / production build (`dist/`) / serve the build                   |
+| `npm run lint` · `typecheck` · `format` | ESLint (flat config) · `tsc --noEmit` · Prettier                                 |
+| `npm test` · `test:coverage`            | Vitest + Testing Library (≥ 80% on `src/shared/lib` and the matcher)             |
+| `npm run test:e2e`                      | Playwright + axe against a hermetic build (needs `npm run e2e:install` once)     |
+| `npm run images`                        | Rebuild optimized images in `public/assets` from `assets-src/`                   |
+| `npm run icons`                         | Copy tech SVGs from `devicon` into `public/tech` (runs before `dev` and `build`) |
 
-Verify: anonymous `GET /rest/v1/projects` → 200; anonymous `POST` → 401.
-Full checklist with curl snippets: `docs/E2E-BACKEND.md`.
+Git hooks (Husky) run lint-staged on commit and Commitlint (Conventional Commits) on the message.
+CI (`.github/workflows/ci.yml`): lint, format, types, unit + coverage, build, e2e + axe,
+Lighthouse budgets, pgTAP RLS tests, gitleaks. Dependabot is enabled.
 
 ## Structure
 
 ```text
-index.html              # user view: wiring + presentation, data via PortfolioStore
-admin.html              # admin console: Auth login, CRUD, Storage upload, inbox (noindex)
-css/main.css            # responsive + .admin-* scope; zero !important
-js/config.js            # getConfig() reads window.__PORTFOLIO_CONFIG__ (null = seed mode)
-js/store.js             # PortfolioStore: list/subscribe/create/update/remove/sendMessage
-js/content.js           # frozen seed fallback (never edited to change content)
-js/locale.js            # translations + get(path, lang) with English fallback
-js/matcher.js           # knowledgeBase + findAnswer(query) -> string (static)
-supabase/schema.sql     # tables, checks, RLS, bucket (idempotent)
-supabase/seed.sql       # verbatim seed from js/content.js (stable ids)
-config.local.example.js # credential shape (REPLACE-ME, committed)
-config.local.js         # real credentials (local only, ignored)
-assets/                 # legacy seed images + convention notes
-docs/adr/               # versioned decisions (0001: Supabase backend)
-docs/E2E-BACKEND.md     # manual end-to-end proof script
-GLOSSARY.md             # domain + architecture terms
+index.html, admin.html     # two Vite entry points (admin code never ships to visitors)
+src/
+  app/                     # entries (public-main, admin-main), App, Footer
+  features/
+    navigation/ hero/ chatbot/ showcase/ contact/ admin/
+  shared/
+    ui/                    # Modal (focus trap), TechIcon, OptimizedImage, flags, brand icons
+    lib/                   # config, locale, profile, store/ (typed Supabase + seed adapters)
+  content/seed.ts          # frozen offline fallback
+  styles/main.css          # Tailwind v4 theme (@theme) + responsive layer
+public/                    # favicon, og-image, assets/ (optimized legacy images), tech/ (generated)
+assets-src/                # master images; `npm run images` writes public/assets
+supabase/
+  migrations/              # 0001 init · 0002 admin hardening · 0003 image typo (versioned)
+  tests/rls.test.sql       # pgTAP contract for RLS and constraints
+  seed.sql                 # stable-id seed
+e2e/                       # Playwright specs (live, offline, a11y, admin)
+docs/                      # ADRs, deploy guide, security runbook, E2E checklist
 ```
 
-## Data & fallback behavior
+## Backend setup (once)
 
-- Admin edits (projects, certificates, tech stack) write to Supabase and
-  appear in the user view live (realtime subscription, at worst after refresh).
-- Contact form calls `sendMessage()` → stored in the admin inbox.
-  No backend / offline → it falls back to the old honest `mailto:` flow
-  ("Opening your email app…") and never claims a delivery it didn't make.
-- Backend down or misconfigured → seed renders with banner + "Try again".
+1. Create a Supabase project, then apply `supabase/migrations/*.sql` in order and `seed.sql`
+   (**read `docs/SECURITY-RUNBOOK.md` first**: mark your admin user before migration 0002,
+   and turn off public sign-ups).
+2. Authentication → add one admin user (Auto Confirm on), enable TOTP MFA.
+3. Put the URL and anon key in `.env.local` (dev) or Vercel env vars (production).
+
+Local database with Docker: `npx supabase start && npx supabase db reset && npx supabase test db`.
+
+## Data and fallback behaviour
+
+- Admin edits write to Supabase and show up in the public view live (debounced realtime).
+- The contact form calls the rate-limited `submit_message` RPC (ADR-0004). Backend not
+  configured → honest `mailto:` fallback; offline → the message is kept and the error shown.
+- Backend down or misconfigured → seed renders with banner and "Try again", never a blank page.
 
 ## Chatbot note
 
-The chatbot answers from the static `knowledgeBase` in `js/matcher.js` — it
-does **not** automatically learn newly added projects. Dynamic title lookup
-is a follow-up, not a silent behavior.
+The assistant is a keyword matcher over a static knowledge base (`src/features/chatbot`). It is
+labelled as such and does not learn new projects automatically. Facts it shares with the rest
+of the site (email, skills) come from `src/shared/lib/profile.ts`.
 
-## Security & limits
+## Security and limits
 
-- The anon key is public by design; access control is row-level security
-  (public read, authenticated write; messages: public insert only).
-- `service_role` must **never** enter the repo or the browser. Verified with
-  `git log -S` scans; CI-less rule: grep before every commit.
-- Rotate a leaked anon key in Supabase dashboard → update `config.local.js`.
-- Supabase free-tier limits apply (DB size, bandwidth, idle pause); exit path is a
-  plain SQL dump — no lock-in beyond Postgres.
+- The anon key is public by design; access control is row-level security. Writes require
+  `app_metadata.role = 'admin'` (ADR-0003). `service_role` must never enter the repo or a `VITE_*` variable.
+- `vercel.json` ships a strict CSP (no `unsafe-eval`), HSTS, `nosniff`, frame and referrer policies.
+- Report vulnerabilities per `SECURITY.md`.
+- Supabase free-tier limits apply (DB size, bandwidth, idle pause; a keep-alive workflow pings it).
+  Exit path is a plain SQL dump: no lock-in beyond Postgres.
 
-## Asset convention
+## More
 
-`kebab-case`, lowercase, no spaces or apostrophes — for `assets/` and for
-Storage paths (`projects/<slug>`, `certs/<slug>`, 2 MB cap, compress first).
-Details: `assets/README.md`.
+`docs/adr/` (decisions) · `docs/DEPLOY-VERCEL.md` · `docs/SECURITY-RUNBOOK.md` · `docs/E2E-BACKEND.md` ·
+`docs/ROADMAP-STATUS.md` · `CONTRIBUTING.md` · `GLOSSARY.md`
 
-## Deploy
-
-Any static host (GitHub Pages, Netlify, Vercel). No server, no env vars.
-Pinned CDN versions are in the `<head>` of both pages. `admin.html` carries
-`noindex, nofollow`.
-
-Production backend on deploys comes from the committed
-`config.production.js` (anon key, public by design); local development
-overrides it with git-ignored `config.local.js`. Full Vercel walkthrough
-(setup, verification, daily workflow, troubleshooting, key rotation):
-`docs/DEPLOY-VERCEL.md`.
+License: MIT.
